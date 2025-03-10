@@ -1,7 +1,7 @@
 import streamlit as st
 import requests
 
-API_URL = "https://your-app-on-render.com/chat"  # Update after deploying
+API_URL = "https://banking-chatbot-k0qe.onrender.com/chat"
 
 st.title("💳 AI Banking Chatbot")
 st.write("Ask about your balance, recent transactions, or perform fund transfers.")
