@@ -16,9 +16,8 @@ def home():
 @app.post("/chat")
 async def chat(request: ChatRequest):
     try:
-        # ✅ Pass required arguments to `run_chatbot`
-        config = {}  # Add default config if needed
-        response = await run_chatbot(request.customer_id, request.message, config)  # FIXED
+        config = {}  # Ensure config is not None
+        response = await run_chatbot(app, request.message, request.customer_id, config)
         return {"response": response}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
