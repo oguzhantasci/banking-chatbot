@@ -1,4 +1,4 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 import uvicorn
 from main import run_chatbot  # Import your chatbot logic
@@ -11,8 +11,11 @@ class ChatRequest(BaseModel):
 
 @app.post("/chat")
 async def chat(request: ChatRequest):
-    response = await run_chatbot(request.customer_id, request.message)
-    return {"response": response}
+    try:
+        response = await run_chatbot(request.customer_id, request.message)
+        return {"response": response}  # ✅ Always return JSON
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))  # ✅ Handle errors properly
 
 if __name__ == "__main__":
     uvicorn.run(app, host="0.0.0.0", port=8000)
