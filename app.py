@@ -4,6 +4,7 @@ from pydantic import BaseModel
 import asyncio
 from graph import build_app  # Ensure this is correctly imported
 from main import run_chatbot
+from tools import is_valid_customer
 
 app = FastAPI()
 
@@ -18,11 +19,19 @@ banking_app = build_app()  # ✅ Build the chatbot app at startup
 async def chat(request: ChatRequest):
     try:
         config = {}
-        # ✅ Pass the banking_app to run_chatbot()
+
+        if not is_valid_customer(request.customer_id):
+            return {"error": f"⚠️ Geçersiz Müşteri ID: {request.customer_id}. Lütfen kontrol ediniz."}
+
         response = await run_chatbot(banking_app, request.message, request.customer_id, config)
+
+        if not response:
+            raise HTTPException(status_code=400, detail="Yanıt alınamadı. Lütfen tekrar deneyiniz.")
+
         return {"response": response}
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=f"Hata oluştu: {str(e)}")
+
 
 if __name__ == "__main__":
     uvicorn.run("app:app", host="0.0.0.0", port=8000, reload=True)
