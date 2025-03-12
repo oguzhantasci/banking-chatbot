@@ -1,4 +1,4 @@
-const API_URL = "https://banking-chatbot-k0qe.onrender.com/chat";  // Replace with your actual API URL
+const API_URL = "https://banking-chatbot-k0qe.onrender.com/chat";
 
 function handleKeyPress(event) {
     if (event.key === "Enter") {
