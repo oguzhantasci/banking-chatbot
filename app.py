@@ -15,10 +15,18 @@ class ChatRequest(BaseModel):
 
 banking_app = build_app()  # ✅ Build the chatbot app at startup
 
+
 @app.post("/chat")
 async def chat(request: ChatRequest):
     try:
-        config = {}
+        # ✅ Ensure required keys exist in config
+        config = {
+            "configurable": {
+                "thread_id": request.customer_id,  # ✅ Use customer_id as session ID
+                "checkpoint_ns": "default",  # ✅ Assign a default value
+                "checkpoint_id": "default",  # ✅ Assign a default value
+            }
+        }
 
         if not is_valid_customer(request.customer_id):
             return {"error": f"⚠️ Geçersiz Müşteri ID: {request.customer_id}. Lütfen kontrol ediniz."}
@@ -29,6 +37,7 @@ async def chat(request: ChatRequest):
             raise HTTPException(status_code=400, detail="Yanıt alınamadı. Lütfen tekrar deneyiniz.")
 
         return {"response": response}
+
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Hata oluştu: {str(e)}")
 
