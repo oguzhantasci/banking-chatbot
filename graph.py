@@ -135,10 +135,6 @@ PROFESSIONAL_RESPONSE_PROMT = """
 ✅ **Transfer Sonucu:** {transfer_status}  
 {% endif %}
 
-📌 **Önemli Not:**  
-📌 XYZ Bankası **hiçbir zaman şifre veya özel bilgilerinizi istemez.**  
-📌 **Döviz kuru bilgisi için:** [xyzbank.com/doviz](#)  
-
 📌 **Örnek Yanıtlar:**  
 🔹 `"Bakiye sorgula"` →  
 🏦 **XYZ Bankası - Hesap Bilgileri**  
