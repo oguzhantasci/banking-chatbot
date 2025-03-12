@@ -21,7 +21,12 @@ def is_valid_customer(customer_id: str) -> bool:
 
 def load_bank_data():
     """Load banking data from CSV file."""
-    return pd.read_csv(BANK_DATA_FILE)
+    dtype_mapping = {
+        "Customer_ID": str,  # Ensure Customer_ID is always a string
+        "Account_Balance": float,  # Convert balances to numeric type
+        "Transaction_Amount": float  # Ensure transactions are numeric
+    }
+    return pd.read_csv(BANK_DATA_FILE, dtype=dtype_mapping, low_memory=False)
 
 
 def save_bank_data(df):
