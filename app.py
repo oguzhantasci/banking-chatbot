@@ -5,9 +5,16 @@ import asyncio
 from graph import build_app  # Ensure this is correctly imported
 from main import run_chatbot
 from tools import is_valid_customer
+from fastapi.middleware.cors import CORSMiddleware
 
 app = FastAPI()
-
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["https://oguzhantasci.github.io"],  # ✅ Allow GitHub Pages
+    allow_credentials=True,
+    allow_methods=["*"],  # ✅ Allow all methods (GET, POST, etc.)
+    allow_headers=["*"],  # ✅ Allow all headers
+)
 # ✅ Ensure this matches the expected input
 class ChatRequest(BaseModel):
     customer_id: str
