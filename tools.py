@@ -94,7 +94,7 @@ def update_transaction_history(customer_id: str, transaction_type: str, amount: 
     new_transaction = pd.DataFrame(
         [{'CustomerID': customer_id, 'Date': date, 'TransactionType': transaction_type, 'Amount': amount}])
     df = pd.concat([df, new_transaction], ignore_index=True)
-    df.to_csv("Bank_Transaction.csv", index=False)  # Ensure data is saved
+    df.to_csv("Bank_Transaction.csv", index=False)
 
 @tool
 def format_banking_response(balance: str, transactions: str) -> str:

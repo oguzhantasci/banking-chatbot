@@ -19,7 +19,6 @@ async def run_chatbot(app, query: str, customer_id: str, config: dict) -> str:
     result = ""  # Store chatbot response
     async for chunk in app.astream(inputs, config, stream_mode="values"):
         response = chunk["messages"][-1].content
-        print("\n💬 AI Response:", response)  # ✅ Prints response to terminal
         result += response + "\n"  # Append to result
 
     final_response = result.strip()
