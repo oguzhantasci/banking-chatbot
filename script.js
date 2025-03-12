@@ -24,9 +24,9 @@ function sendMessage() {
 
     // Send request to backend
     fetch(API_URL, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ customer_id: customerId, message: userInput })
+    method: "POST",  // ✅ Ensure this is "POST"
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ customer_id: customerId, message: userInput })
     })
     .then(response => response.json())
     .then(data => {
