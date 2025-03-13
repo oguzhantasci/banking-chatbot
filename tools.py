@@ -12,8 +12,6 @@ def is_valid_customer(customer_id: str) -> bool:
     # ✅ Define dtype to prevent mixed-type warning
     dtype_mapping = {
         "Customer_ID": str,  # Ensure Customer_ID is always a string
-        "Account_Balance": float,  # Convert balances to numeric type
-        "Transaction_Amount": float  # Ensure transactions are numeric
     }
 
     df = pd.read_csv(BANK_DATA_FILE, dtype=dtype_mapping, low_memory=False)

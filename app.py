@@ -29,7 +29,7 @@ async def chat(request: ChatRequest):
         # ✅ Ensure required keys exist in config
         config = {
             "configurable": {
-                "thread_id": request.customer_id,  # ✅ Use customer_id as session ID
+                "thread_id": request.customer_id,  # ✅ Uses customer_id as session ID
                 "checkpoint_ns": "default",  # ✅ Assign a default value
                 "checkpoint_id": "default",  # ✅ Assign a default value
             }
