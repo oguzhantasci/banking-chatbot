@@ -119,21 +119,3 @@ def fetch_customer_info(customer_id: str) -> str:
         "surname": customer.iloc[0]["Surname"],
         "gender": customer.iloc[0]["Gender"]
     }
-
-
-@tool
-def get_current_greeting() -> str:
-    """
-    Günün saatine göre uygun bir selamlama mesajı döndürür (Türkiye saati ile).
-    """
-    turkish_tz = pytz.timezone("Europe/Istanbul")  # Türkiye saat dilimini ayarla
-    hour = datetime.now(turkish_tz).hour  # Türkiye saatine göre saati al
-
-    if 6 <= hour < 12:
-        return "İyi sabahlar"
-    elif 12 <= hour < 18:
-        return "İyi günler"
-    elif 18 <= hour < 22:
-        return "İyi akşamlar"
-    else:
-        return "İyi geceler"
