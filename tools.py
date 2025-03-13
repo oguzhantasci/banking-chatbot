@@ -1,8 +1,9 @@
 import pandas as pd
 import datetime
+from langchain_core.tools import tool
 
-BANK_DATA_FILE = "Bank_Transaction.csv"
-
+# CSV Dosya Yolu
+BANK_DATA_FILE = "custom_banking_data.csv"
 
 def is_valid_customer(customer_id: str) -> bool:
     """
@@ -20,108 +21,83 @@ def is_valid_customer(customer_id: str) -> bool:
     return customer_id in df["Customer_ID"].values  # Check if ID exists
 
 def load_bank_data():
-    """Load banking data from CSV file."""
+    """CSV dosyasını yükler ve veri türlerini uygun şekilde ayarlar."""
     dtype_mapping = {
-        "Customer_ID": str,  # Ensure Customer_ID is always a string
-        "Account_Balance": float,  # Convert balances to numeric type
-        "Transaction_Amount": float  # Ensure transactions are numeric
+        "Customer_ID": str,
+        "Card_Number": str,
+        "Card_Type": str,
+        "Credit_Limit": float,
+        "Current_Debt": float,
+        "Statement_Debt": float,
+        "Statement_Due_Date": str,
+        "Online_Shopping_Enabled": str,
+        "QRCode_Payment_Enabled": str,
+        "Statement_Preference": str,
+        "Account_Number": str,
+        "Account_Type": str,
+        "Balance": float
     }
-    return pd.read_csv(BANK_DATA_FILE, dtype=dtype_mapping, low_memory=False)
-
-
-def save_bank_data(df):
-    """Save banking data back to CSV file."""
-    df.to_csv(BANK_DATA_FILE, index=False)
-
-
-import pandas as pd
-import datetime
-from langchain_core.tools import tool
+    return pd.read_csv(BANK_DATA_FILE, dtype=dtype_mapping)
 
 @tool
-def fetch_balance(customer_id: str) -> str:
-    """Retrieve the balance of a customer using the correct column name."""
-    df = pd.read_csv("Bank_Transaction.csv")
-
-    # Ensure the Customer_ID column is a string for comparison
-    df['Customer_ID'] = df['Customer_ID'].astype(str)
-
-    customer_data = df[df['Customer_ID'] == str(customer_id)]
+def fetch_cards(customer_id: str) -> str:
+    """Müşterinin kart numaralarını ve tiplerini getirir."""
+    df = load_bank_data()
+    customer_data = df[df['Customer_ID'] == customer_id]
     if customer_data.empty:
-        return f"Müşteri numarası {customer_id} bulunamadı. Lütfen tekrar kontrol edin."
-
-    balance = customer_data.iloc[-1]['Account_Balance']  # Use correct column name
-    return f"Mevcut bakiye: {balance} TL"
+        return "Müşteri bulunamadı."
+    return customer_data[['Card_Number', 'Card_Type']].to_string(index=False)
 
 @tool
-def fetch_transactions(customer_id: str, limit: int = 5) -> str:
-    """Retrieve last N transactions of a customer."""
-    df = pd.read_csv("Bank_Transaction.csv")
-
-    # Ensure Customer_ID is a string for matching
-    df['Customer_ID'] = df['Customer_ID'].astype(str)
-
-    transactions = df[df['Customer_ID'] == str(customer_id)].tail(limit)
-    if transactions.empty:
-        return f"Müşteri numarası {customer_id} için işlem bulunamadı."
-
-    return transactions[['Transaction_Date', 'Transaction_Amount', 'Transaction_Description']].to_string(index=False)
+def fetch_credit_limits(customer_id: str) -> str:
+    """Müşterinin kredi limitlerini getirir."""
+    df = load_bank_data()
+    customer_data = df[df['Customer_ID'] == customer_id]
+    if customer_data.empty:
+        return "Müşteri bulunamadı."
+    return customer_data[['Card_Number', 'Credit_Limit']].to_string(index=False)
 
 @tool
-def transfer_funds(sender_id: str, recipient_id: str, amount: float) -> str:
-    """
-    Transfers funds between accounts if both customer IDs are valid.
-
-    Args:
-        sender_id (str): The sender's customer ID.
-        recipient_id (str): The recipient's customer ID.
-        amount (float): The amount to transfer.
-
-    Returns:
-        str: Transfer success or failure message.
-    """
-    df = pd.read_csv("Bank_Transaction.csv", dtype={"Customer_ID": str})  # Ensure correct data type
-
-    if sender_id not in df["Customer_ID"].astype(str).values:
-        return "Gönderici müşteri ID'si bulunamadı. Lütfen geçerli bir hesapla tekrar deneyin."
-
-    if recipient_id not in df["Customer_ID"].astype(str).values:
-        return "Alıcı müşteri ID'si bulunamadı. Lütfen geçerli bir müşteri ID'si girin."
-
-    return f"{amount} TL başarıyla {recipient_id} hesabına gönderildi."
+def fetch_current_debt(customer_id: str, card_number: str) -> str:
+    """Belirli bir kartın mevcut borcunu getirir."""
+    df = load_bank_data()
+    customer_data = df[(df['Customer_ID'] == customer_id) & (df['Card_Number'] == card_number)]
+    if customer_data.empty:
+        return "Kart veya müşteri bulunamadı."
+    return f"Kart Borcu: {customer_data.iloc[0]['Current_Debt']} TL"
 
 @tool
-def update_transaction_history(customer_id: str, transaction_type: str, amount: float):
-    """Log a new transaction in the dataset."""
-    df = pd.read_csv("Bank_Transaction.csv", dtype=str)
-    date = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-
-    new_transaction = pd.DataFrame(
-        [{'CustomerID': customer_id, 'Date': date, 'TransactionType': transaction_type, 'Amount': amount}])
-    df = pd.concat([df, new_transaction], ignore_index=True)
-    df.to_csv("Bank_Transaction.csv", index=False)
+def fetch_statement_debt(customer_id: str, card_number: str) -> str:
+    """Belirli bir kartın ekstre borcunu ve son ödeme tarihini getirir."""
+    df = load_bank_data()
+    customer_data = df[(df['Customer_ID'] == customer_id) & (df['Card_Number'] == card_number)]
+    if customer_data.empty:
+        return "Kart veya müşteri bulunamadı."
+    return f"Ekstre Borcu: {customer_data.iloc[0]['Statement_Debt']} TL, Son Ödeme Tarihi: {customer_data.iloc[0]['Statement_Due_Date']}"
 
 @tool
-def format_banking_response(balance: str, transactions: str) -> str:
-    """
-    Formats banking information into a professional banking statement.
+def fetch_card_settings(customer_id: str, card_number: str) -> str:
+    """Kartın ayarlarını getirir (İnternet alışverişi, QR Kod ödeme vb.)."""
+    df = load_bank_data()
+    customer_data = df[(df['Customer_ID'] == customer_id) & (df['Card_Number'] == card_number)]
+    if customer_data.empty:
+        return "Kart veya müşteri bulunamadı."
+    return f"İnternet Alışverişi: {customer_data.iloc[0]['Online_Shopping_Enabled']}, QR Kod Ödeme: {customer_data.iloc[0]['QRCode_Payment_Enabled']}, Ekstre Tercihi: {customer_data.iloc[0]['Statement_Preference']}"
 
-    Args:
-        balance (str): The current balance information.
-        transactions (str): The recent transaction history.
+@tool
+def fetch_accounts(customer_id: str) -> str:
+    """Müşterinin hesaplarını getirir."""
+    df = load_bank_data()
+    customer_data = df[df['Customer_ID'] == customer_id]
+    if customer_data.empty:
+        return "Müşteri bulunamadı."
+    return customer_data[['Account_Number', 'Account_Type']].to_string(index=False)
 
-    Returns:
-        str: A formatted response containing banking details.
-    """
-    return f"""
-🏦 **XYZ Bankası Hesap Bilgileri**  
-📅 Tarih: {datetime.datetime.now().strftime('%d %B %Y')}  
-{balance}  
-📜 Son İşlemler:  
-{transactions}  
-🔔 **Banka Notu:** İşlemler en son güncellendi.
-    """
-
-
-
-
+@tool
+def fetch_account_balance(account_number: str) -> str:
+    """Belirli bir banka hesabının bakiyesini getirir."""
+    df = load_bank_data()
+    account_data = df[df['Account_Number'] == account_number]
+    if account_data.empty:
+        return "Hesap bulunamadı."
+    return f"Mevcut Bakiye: {account_data.iloc[0]['Balance']} TL"

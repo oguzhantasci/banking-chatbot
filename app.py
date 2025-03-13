@@ -2,10 +2,10 @@ import uvicorn
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 import asyncio
-from graph import build_app  # Ensure this is correctly imported
+from graph import build_app  # Güncellenmiş AI Agent sistemini içe aktar
+from fastapi.middleware.cors import CORSMiddleware
 from main import run_chatbot
 from tools import is_valid_customer
-from fastapi.middleware.cors import CORSMiddleware
 
 app = FastAPI()
 app.add_middleware(
