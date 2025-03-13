@@ -1,6 +1,7 @@
 import pandas as pd
 import datetime
 from langchain_core.tools import tool
+import pytz
 
 # CSV Dosya Yolu
 BANK_DATA_FILE = "custom_banking_data.csv"
@@ -113,7 +114,26 @@ def fetch_customer_info(customer_id: str) -> str:
         return None
 
     return {
+        "customer_id": customer.iloc[0]["Customer_ID"],
         "name": customer.iloc[0]["Name"],
         "surname": customer.iloc[0]["Surname"],
         "gender": customer.iloc[0]["Gender"]
     }
+
+
+@tool
+def get_current_greeting() -> str:
+    """
+    Günün saatine göre uygun bir selamlama mesajı döndürür (Türkiye saati ile).
+    """
+    turkish_tz = pytz.timezone("Europe/Istanbul")  # Türkiye saat dilimini ayarla
+    hour = datetime.now(turkish_tz).hour  # Türkiye saatine göre saati al
+
+    if 6 <= hour < 12:
+        return "İyi sabahlar"
+    elif 12 <= hour < 18:
+        return "İyi günler"
+    elif 18 <= hour < 22:
+        return "İyi akşamlar"
+    else:
+        return "İyi geceler"
