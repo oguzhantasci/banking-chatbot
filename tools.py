@@ -12,6 +12,7 @@ def is_valid_customer(customer_id: str) -> bool:
     # ✅ Define dtype to prevent mixed-type warning
     dtype_mapping = {
         "Customer_ID": str,  # Ensure Customer_ID is always a string
+        "Balance": float,  # Convert balances to numeric type
     }
 
     df = pd.read_csv(BANK_DATA_FILE, dtype=dtype_mapping, low_memory=False)
@@ -33,7 +34,10 @@ def load_bank_data():
         "Statement_Preference": str,
         "Account_Number": str,
         "Account_Type": str,
-        "Balance": float
+        "Balance": float,
+        "Name": str,
+        "Surname": str,
+        "Gender": str
     }
     return pd.read_csv(BANK_DATA_FILE, dtype=dtype_mapping)
 
@@ -99,3 +103,17 @@ def fetch_account_balance(account_number: str) -> str:
     if account_data.empty:
         return "Hesap bulunamadı."
     return f"Mevcut Bakiye: {account_data.iloc[0]['Balance']} TL"
+
+@tool
+def fetch_customer_info(customer_id: str) -> str:
+    """Müşterinin adı, soyadı ve cinsiyetini getirir."""
+    df = load_bank_data()
+    customer = df[df["Customer_ID"] == customer_id]
+    if customer.empty:
+        return None
+
+    return {
+        "name": customer.iloc[0]["Name"],
+        "surname": customer.iloc[0]["Surname"],
+        "gender": customer.iloc[0]["Gender"]
+    }

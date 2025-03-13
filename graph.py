@@ -16,7 +16,7 @@ from langgraph.checkpoint.memory import MemorySaver
 from pydantic import BaseModel
 from tools import (
     fetch_cards, fetch_credit_limits, fetch_current_debt,
-    fetch_statement_debt, fetch_card_settings, fetch_accounts, fetch_account_balance
+    fetch_statement_debt, fetch_card_settings, fetch_accounts, fetch_account_balance, fetch_customer_info
 )
 
 os.environ["OPENAI_API_KEY"] = os.getenv("OPENAI_API_KEY")
@@ -32,12 +32,14 @@ CREDIT_CARD_TOOLS = [
     fetch_credit_limits,
     fetch_current_debt,
     fetch_statement_debt,
-    fetch_card_settings
+    fetch_card_settings,
+    fetch_customer_info
 ]
 
 ACCOUNT_TOOLS = [
     fetch_accounts,
-    fetch_account_balance
+    fetch_account_balance,
+    fetch_customer_info
 ]
 
 # AI Model
@@ -74,19 +76,46 @@ SUPERVISOR_PROMPT = """
 CREDIT_CARD_PROMPT = """
 📌 **Rolün:** Bir kredi kartı bilgi asistanısın.
 🔹 **Görevin:** Kullanıcının kartları, limitleri, borçları ve kart ayarlarını sağlamak.
+🔹 **Müşteri ID ile gelen bilgileri analiz et ve kullanıcıya uygun bir şekilde hitap et:**  
+
+✅ **Eğer müşteri erkekse:** Yanıtın başına **"Sayın {name} Bey,"** ekle.  
+✅ **Eğer müşteri kadınsa:** Yanıtın başına **"Sayın {name} Hanım,"** ekle.  
+✅ **Eğer müşteri adı eksikse:** Kullanıcıya hitap eklemeden bilgileri sun.  
+
+📌 **Örnek Yanıtlar:**  
+🔹 `"Sayın Ahmet Bey, kredi kartı bilgilerinizi aşağıda görebilirsiniz."`  
+🔹 `"Sayın Ayşe Hanım, kart limitiniz 20,000 TL'dir."`  
+
 - Eğer müşteri ID geçerli değilse: "Müşteri bulunamadı."
 """
 
 ACCOUNT_PROMPT = """
 📌 **Rolün:** Bir hesap bilgi asistanısın.
 🔹 **Görevin:** Kullanıcının banka hesaplarını ve bakiyelerini göstermek. Eksik bilgi varsa, kullanıcıdan iste.
+🔹 **Müşteri ID ile gelen bilgileri analiz et ve kullanıcıya uygun bir şekilde hitap et:**  
+
+✅ **Eğer müşteri erkekse:** Yanıtın başına **"Sayın {name} Bey,"** ekle.  
+✅ **Eğer müşteri kadınsa:** Yanıtın başına **"Sayın {name} Hanım,"** ekle.  
+✅ **Eğer müşteri adı eksikse:** Kullanıcıya hitap eklemeden bilgileri sun.  
+
+📌 **Örnek Yanıtlar:**  
+🔹 `"Sayın Ahmet Bey, kredi kartı bilgilerinizi aşağıda görebilirsiniz."`  
+🔹 `"Sayın Ayşe Hanım, kart limitiniz 20,000 TL'dir."`  
+
 - Eğer müşteri ID geçerli değilse: "Müşteri bulunamadı."
 """
 
 PROFESSIONAL_RESPONSE_PROMT = """
 📌 **Rolün:** Resmi, kurumsal ve bankacılığa uygun bir üslupla müşteri taleplerine net, saygılı ve profesyonel yanıtlar veren bir bankacılık asistanısın.
-✅ **Yanıtlarını açık, net ve saygılı bir dille ver.**  
-✅ **Sadece aşağıdaki bankacılık işlemleri hakkında yanıt ver:** 
+🔹 **Müşteri ID ile gelen bilgileri analiz et ve kullanıcıya uygun bir şekilde hitap et:**  
+
+✅ **Eğer müşteri erkekse:** Yanıtın başına **"Sayın {name} Bey,"** ekle.  
+✅ **Eğer müşteri kadınsa:** Yanıtın başına **"Sayın {name} Hanım,"** ekle.  
+✅ **Eğer müşteri adı eksikse:** Kullanıcıya hitap eklemeden bilgileri sun.  
+
+📌 **Örnek Yanıtlar:**  
+🔹 `"Sayın Ahmet Bey, kredi kartı bilgilerinizi aşağıda görebilirsiniz."`  
+🔹 `"Sayın Ayşe Hanım, kart limitiniz 20,000 TL'dir."`  
 
 🏦 **Desteklenen İşlemler:**  
 - **Bakiye sorgulama**
@@ -143,7 +172,7 @@ account_agent = create_react_agent(
 
 professional_response_agent = create_react_agent(
     LLM,
-    tools=[],
+    tools=[fetch_customer_info],
     state_modifier= PROFESSIONAL_RESPONSE_PROMT
 )
 
