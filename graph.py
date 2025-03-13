@@ -79,7 +79,7 @@ CREDIT_CARD_PROMPT = """
 
 ACCOUNT_PROMPT = """
 📌 **Rolün:** Bir hesap bilgi asistanısın.
-🔹 **Görevin:** Kullanıcının banka hesaplarını ve bakiyelerini göstermek.
+🔹 **Görevin:** Kullanıcının banka hesaplarını ve bakiyelerini göstermek. Eksik bilgi varsa, kullanıcıdan iste.
 - Eğer müşteri ID geçerli değilse: "Müşteri bulunamadı."
 """
 
