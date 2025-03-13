@@ -18,6 +18,11 @@ async def run_chatbot(app, query: str, customer_id: str, config: dict) -> str:
     result = ""  # Store chatbot response
     async for chunk in app.astream(inputs, config, stream_mode="values"):
         response = chunk["messages"][-1].content
+
+        # ✅ Ignore repeating customer ID, user query, and unnecessary bot labels
+        if response.startswith("Bot:") or response.startswith(f"Müşteri ID: {customer_id}") or response == query:
+            continue
+
         result += response + "\n"  # Append to result
 
     final_response = result.strip()
