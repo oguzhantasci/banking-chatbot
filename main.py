@@ -3,32 +3,28 @@ import asyncio
 from langchain_core.messages import HumanMessage
 from graph import build_app
 from tools import is_valid_customer
+from tools import transcribe_audio, record_audio, text_to_speech
 
 async def run_chatbot(app, query: str, customer_id: str, config: dict) -> str:
-    """Process banking queries dynamically with AI-driven responses."""
-    # ✅ Step 1: Validate Customer ID before processing
+    """Müşteri ID doğrulama ve JSON veri kullanımı ile chatbot işlemi."""
+
     if not is_valid_customer(customer_id):
-        error_msg = f"❌ Müşteri ID '{customer_id}' geçerli değil. Lütfen doğru ID giriniz."
-        print(error_msg)  # ✅ Show error in terminal for debugging
-        return error_msg  # ✅ Return error message instead of proceeding
+        return f"❌ Müşteri ID '{customer_id}' geçerli değil. Lütfen doğru ID giriniz."
 
     query = f"Müşteri ID: {customer_id}\n{query}"
     inputs = {"messages": [HumanMessage(content=query)]}
+    result = ""
 
-    result = ""  # Store chatbot response
     async for chunk in app.astream(inputs, config, stream_mode="values"):
         response = chunk["messages"][-1].content
-
-        # ✅ Ignore repeating customer ID, user query, and unnecessary bot labels
         if response.startswith("Bot:") or response.startswith(f"Müşteri ID: {customer_id}") or response == query:
             continue
+        result += response + "\n"
 
-        result += response + "\n"  # Append to result
+    text_to_speech(result.strip())  # Yanıtı sesli oku
 
-    final_response = result.strip()
-    print("\n✅ Final Response:", final_response)  # ✅ Print final response to terminal
-
-    return final_response  # ✅ Return response for API
+    print(f"\n✅ AI Yanıtı:\n{result.strip()}")
+    return result.strip()
 
 async def interactive_mode(app):
     """Start an AI-powered banking assistant session."""
@@ -44,7 +40,8 @@ async def interactive_mode(app):
 
     print(f"\n✅ Müşteri ID '{customer_id}' doğrulandı. Şimdi bankacılık işlemlerinizi yapabilirsiniz.\n")
 
-    config = {"configurable": {"thread_id": customer_id, "checkpoint_ns": "banking_session", "checkpoint_id": f"session_{customer_id}"}}
+    config = {"configurable": {"thread_id": customer_id, "checkpoint_ns": "banking_session",
+                               "checkpoint_id": f"session_{customer_id}"}}
 
     while True:
         query = input("\nYour banking request: ").strip()

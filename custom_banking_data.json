@@ -1,0 +1,202 @@
+{
+    "CUST0001": {
+        "customer_id": "CUST0001",
+        "name": "Hüseyin",
+        "surname": "Arslan",
+        "gender": "Erkek",
+        "accounts": [
+            {
+                "account_number": "8694788651",
+                "account_type": "Döviz Hesabı",
+                "balance": 10000
+            },
+            {
+                "account_number": "4293610441",
+                "account_type": "Altın Hesap",
+                "balance": 20000
+            },
+            {
+                "account_number": "9168825581",
+                "account_type": "Vadeli Hesap",
+                "balance": 15000
+            }
+        ],
+        "cards": [
+            {
+                "card_number": "861161395564611",
+                "card_type": "Kredi Kartı",
+                "credit_limit": 25000,
+                "available_limit": 12000,
+                "current_debt": 13000,
+                "statement_debt": 4500,
+                "statement_due_date": "2024-10-10",
+                "online_shopping_enabled": true,
+                "qr_payment_enabled": false
+            },
+            {
+                "card_number": "179290070799511",
+                "card_type": "Banka Kartı"
+            }
+        ]
+    },
+    "CUST0002": {
+        "customer_id": "CUST0002",
+        "name": "Fatih",
+        "surname": "Çelik",
+        "gender": "Erkek",
+        "accounts": [
+            {
+                "account_number": "8694788652",
+                "account_type": "Döviz Hesabı",
+                "balance": 20000
+            },
+            {
+                "account_number": "4293610442",
+                "account_type": "Altın Hesap",
+                "balance": 40000
+            },
+            {
+                "account_number": "9168825582",
+                "account_type": "Vadeli Hesap",
+                "balance": 30000
+            }
+        ],
+        "cards": [
+            {
+                "card_number": "861161395564612",
+                "card_type": "Kredi Kartı",
+                "credit_limit": 50000,
+                "available_limit": 24000,
+                "current_debt": 26000,
+                "statement_debt": 9000,
+                "statement_due_date": "2024-10-11",
+                "online_shopping_enabled": false,
+                "qr_payment_enabled": true
+            },
+            {
+                "card_number": "179290070799512",
+                "card_type": "Banka Kartı"
+            }
+        ]
+    },
+    "CUST0003": {
+        "customer_id": "CUST0003",
+        "name": "Yusuf",
+        "surname": "Yılmaz",
+        "gender": "Erkek",
+        "accounts": [
+            {
+                "account_number": "8694788653",
+                "account_type": "Döviz Hesabı",
+                "balance": 30000
+            },
+            {
+                "account_number": "4293610443",
+                "account_type": "Altın Hesap",
+                "balance": 60000
+            },
+            {
+                "account_number": "9168825583",
+                "account_type": "Vadeli Hesap",
+                "balance": 45000
+            }
+        ],
+        "cards": [
+            {
+                "card_number": "861161395564613",
+                "card_type": "Kredi Kartı",
+                "credit_limit": 75000,
+                "available_limit": 36000,
+                "current_debt": 39000,
+                "statement_debt": 13500,
+                "statement_due_date": "2024-10-12",
+                "online_shopping_enabled": true,
+                "qr_payment_enabled": false
+            },
+            {
+                "card_number": "179290070799513",
+                "card_type": "Banka Kartı"
+            }
+        ]
+    },
+    "CUST0004": {
+        "customer_id": "CUST0004",
+        "name": "Şeyma",
+        "surname": "Kaya",
+        "gender": "Kadın",
+        "accounts": [
+            {
+                "account_number": "8694788654",
+                "account_type": "Döviz Hesabı",
+                "balance": 40000
+            },
+            {
+                "account_number": "4293610444",
+                "account_type": "Altın Hesap",
+                "balance": 80000
+            },
+            {
+                "account_number": "9168825584",
+                "account_type": "Vadeli Hesap",
+                "balance": 60000
+            }
+        ],
+        "cards": [
+            {
+                "card_number": "861161395564614",
+                "card_type": "Kredi Kartı",
+                "credit_limit": 100000,
+                "available_limit": 48000,
+                "current_debt": 52000,
+                "statement_debt": 18000,
+                "statement_due_date": "2024-10-13",
+                "online_shopping_enabled": false,
+                "qr_payment_enabled": true
+            },
+            {
+                "card_number": "179290070799514",
+                "card_type": "Banka Kartı"
+            }
+        ]
+    },
+    "CUST0005": {
+        "customer_id": "CUST0005",
+        "name": "Yaren",
+        "surname": "Taşçı",
+        "gender": "Kadın",
+        "accounts": [
+            {
+                "account_number": "8694788655",
+                "account_type": "Döviz Hesabı",
+                "balance": 50000
+            },
+            {
+                "account_number": "4293610445",
+                "account_type": "Altın Hesap",
+                "balance": 100000
+            },
+            {
+                "account_number": "9168825585",
+                "account_type": "Vadeli Hesap",
+                "balance": 75000
+            }
+        ],
+        "cards": [
+            {
+                "card_number": "861161395564615",
+                "card_type": "Kredi Kartı",
+                "credit_limit": 125000,
+                "available_limit": 60000,
+                "current_debt": 65000,
+                "statement_debt": 22500,
+                "statement_due_date": "2024-10-14",
+                "online_shopping_enabled": true,
+                "qr_payment_enabled": false
+            },
+            {
+                "card_number": "179290070799515",
+                "card_type": "Banka Kartı"
+            }
+        ]
+    }
+}
