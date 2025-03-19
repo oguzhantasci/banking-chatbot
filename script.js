@@ -1,14 +1,79 @@
 const API_URL = "https://banking-chatbot-k0qe.onrender.com/chat";
-const TTS_API_URL = "https://banking-chatbot-k0qe.onrender.com/tts"; // Endpoint for Text-to-Speech
-const STT_API_URL = "https://banking-chatbot-k0qe.onrender.com/stt"; // Endpoint for Speech-to-Text
+const STT_API_URL = "https://banking-chatbot-k0qe.onrender.com/stt";
+const TTS_API_URL = "https://banking-chatbot-k0qe.onrender.com/tts";
 
-function handleKeyPress(event) {
-    if (event.key === "Enter") {
-        sendMessage();
+let isRecording = false;
+let mediaRecorder;
+let audioChunks = [];
+
+// 🎤 Toggle Voice Recording
+function toggleRecording() {
+    const recordButton = document.getElementById("recordButton");
+
+    if (!isRecording) {
+        startRecording();
+        recordButton.innerText = "⏹ Stop Voice";
+    } else {
+        stopRecording();
+        recordButton.innerText = "🎤 Start Voice";
+    }
+    isRecording = !isRecording;
+}
+
+// 🎤 Start Voice Recording
+async function startRecording() {
+    try {
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        mediaRecorder = new MediaRecorder(stream);
+
+        mediaRecorder.ondataavailable = event => {
+            audioChunks.push(event.data);
+        };
+
+        mediaRecorder.onstop = async () => {
+            const audioBlob = new Blob(audioChunks, { type: "audio/wav" });
+            audioChunks = [];
+            processSpeech(audioBlob);
+        };
+
+        mediaRecorder.start();
+    } catch (error) {
+        console.error("Error accessing microphone:", error);
     }
 }
 
-function sendMessage() {
+// ⏹ Stop Recording & Send to STT API
+function stopRecording() {
+    if (mediaRecorder && mediaRecorder.state !== "inactive") {
+        mediaRecorder.stop();
+    }
+}
+
+// 🎤 Convert Speech to Text (STT)
+async function processSpeech(audioBlob) {
+    showLoading(true);
+
+    const formData = new FormData();
+    formData.append("file", audioBlob);
+
+    try {
+        const response = await fetch(STT_API_URL, {
+            method: "POST",
+            body: formData,
+        });
+        const data = await response.json();
+        document.getElementById("userInput").value = data.transcription;
+        sendMessage();
+    } catch (error) {
+        console.error("STT Error:", error);
+        alert("Error converting speech to text.");
+    }
+
+    showLoading(false);
+}
+
+// ✉️ Send Text Message to Chatbot
+async function sendMessage() {
     const customerId = document.getElementById("customerId").value;
     const userInput = document.getElementById("userInput").value;
     const chatbox = document.getElementById("chatbox");
@@ -18,92 +83,56 @@ function sendMessage() {
         return;
     }
 
-    // Show user message
-    const userMessage = document.createElement("div");
-    userMessage.classList.add("chat-message", "user-message");
-    userMessage.innerText = `You: ${userInput}`;
-    chatbox.appendChild(userMessage);
+    // Display User Message
+    chatbox.innerHTML += `<div class="chat-message user-message">You: ${userInput}</div>`;
 
-    // Send request to backend
-    fetch(API_URL, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ customer_id: customerId, message: userInput })
-    })
-    .then(response => response.json())
-    .then(data => {
-        const botMessage = document.createElement("div");
-        botMessage.classList.add("chat-message");
-        botMessage.innerText = `💬 Bot: ${data.response}`;
-        chatbox.appendChild(botMessage);
+    showLoading(true);
 
-        // Convert response to speech using TTS
+    try {
+        const response = await fetch(API_URL, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ customer_id: customerId, message: userInput })
+        });
+        const data = await response.json();
+
+        // Display Bot Response
+        chatbox.innerHTML += `<div class="chat-message">💬 Bot: ${data.response}</div>`;
+
+        // 🎤 Convert Response to Speech (TTS)
         textToSpeech(data.response);
-    })
-    .catch(error => {
+    } catch (error) {
         console.error("Error:", error);
-        const errorMessage = document.createElement("div");
-        errorMessage.classList.add("chat-message");
-        errorMessage.innerText = "❌ Error: Unable to fetch response.";
-        chatbox.appendChild(errorMessage);
-    });
+        chatbox.innerHTML += `<div class="chat-message error">❌ Error: Unable to fetch response.</div>`;
+    }
 
-    // Clear input field
     document.getElementById("userInput").value = "";
+    showLoading(false);
 }
 
-// Convert text to speech (TTS)
-function textToSpeech(text) {
-    fetch(TTS_API_URL, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ text: text })
-    })
-    .then(response => response.json())
-    .then(data => {
+// 🔊 Convert Bot Response to Speech (TTS)
+async function textToSpeech(text) {
+    showLoading(true);
+
+    try {
+        const response = await fetch(TTS_API_URL, {
+            method: "POST",
+            headers: { "Content-Type": "application/x-www-form-urlencoded" },
+            body: new URLSearchParams({ text: text })
+        });
+
+        const data = await response.json();
         const audio = new Audio(data.audio_url);
         audio.play();
-    })
-    .catch(error => console.error("TTS Error:", error));
+    } catch (error) {
+        console.error("TTS Error:", error);
+        alert("Error generating speech.");
+    }
+
+    showLoading(false);
 }
 
-// Speech-to-Text (STT) using OpenAI Whisper
-async function startRecording() {
-    try {
-        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-        const mediaRecorder = new MediaRecorder(stream);
-        let audioChunks = [];
-
-        mediaRecorder.ondataavailable = (event) => {
-            audioChunks.push(event.data);
-        };
-
-        mediaRecorder.onstop = async () => {
-            const audioBlob = new Blob(audioChunks, { type: "audio/wav" });
-            const formData = new FormData();
-            formData.append("file", audioBlob, "audio.wav");
-
-            try {
-                const response = await fetch(STT_API_URL, {
-                    method: "POST",
-                    body: formData
-                });
-
-                const data = await response.json();
-                document.getElementById("userInput").value = data.transcription;
-                sendMessage(); // Auto-send after transcribing
-            } catch (error) {
-                console.error("STT Error:", error);
-            }
-        };
-
-        mediaRecorder.start();
-
-        setTimeout(() => {
-            mediaRecorder.stop();
-        }, 4000); // Record for 4 seconds
-
-    } catch (error) {
-        console.error("Microphone access denied:", error);
-    }
+// ⏳ Show/Hide Loading Indicator
+function showLoading(isLoading) {
+    document.getElementById("loadingIndicator").classList.toggle("hidden", !isLoading);
 }

@@ -1,77 +1,70 @@
 import uvicorn
 from fastapi import FastAPI, HTTPException, UploadFile, File, Form
 from pydantic import BaseModel
-import asyncio
-from graph import build_app
-from fastapi.middleware.cors import CORSMiddleware
-from main import run_chatbot
-from tools import is_valid_customer, transcribe_audio, text_to_speech
-import os
 import openai
+import os
+from fastapi.middleware.cors import CORSMiddleware
+import tempfile
 
+# Initialize FastAPI app
 app = FastAPI()
 
+# Allow frontend to communicate with backend
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["https://oguzhantasci.github.io"],  # ✅ Allow GitHub Pages
+    allow_origins=["*"],
     allow_credentials=True,
-    allow_methods=["*"],  # ✅ Allow all methods (GET, POST, etc.)
-    allow_headers=["*"],  # ✅ Allow all headers
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
 
-# ✅ Ensure this matches the expected input
+# Set OpenAI API Key securely
+openai.api_key = os.getenv("OPENAI_API_KEY")
+
+
+# Chat request model
 class ChatRequest(BaseModel):
     customer_id: str
     message: str
-
-banking_app = build_app()  # ✅ Build the chatbot app at startup
 
 
 @app.post("/chat")
 async def chat(request: ChatRequest):
     try:
-        # ✅ Ensure required keys exist in config
-        config = {
-            "configurable": {
-                "thread_id": request.customer_id,  # ✅ Uses customer_id as session ID
-                "checkpoint_ns": "default",  # ✅ Assign a default value
-                "checkpoint_id": "default",  # ✅ Assign a default value
-            }
-        }
-
-        if not is_valid_customer(request.customer_id):
-            return {"error": f"⚠️ Geçersiz Müşteri ID: {request.customer_id}. Lütfen kontrol ediniz."}
-
-        response = await run_chatbot(banking_app, request.message, request.customer_id, config)
-
-        if not response:
-            raise HTTPException(status_code=400, detail="Yanıt alınamadı. Lütfen tekrar deneyiniz.")
-
-        return {"response": response}
-
+        response = openai.ChatCompletion.create(
+            model="gpt-4-turbo",
+            messages=[
+                {"role": "system", "content": "You are a banking assistant."},
+                {"role": "user", "content": request.message}
+            ]
+        )
+        return {"response": response["choices"][0]["message"]["content"]}
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Hata oluştu: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"OpenAI Error: {str(e)}")
+
 
 @app.post("/stt")
 async def speech_to_text(file: UploadFile = File(...)):
-    """Speech-to-Text (STT) using OpenAI API."""
-    file_location = f"temp_{file.filename}"
-    with open(file_location, "wb") as buffer:
-        buffer.write(await file.read())
+    try:
+        with tempfile.NamedTemporaryFile(delete=False, suffix=".wav") as temp_audio:
+            temp_audio.write(await file.read())
+            temp_audio_path = temp_audio.name
 
-    text = transcribe_audio(file_location)  # Uses OpenAI Whisper API
-    return {"transcription": text}
+        transcript = openai.Audio.transcribe("whisper-1", open(temp_audio_path, "rb"))
+        os.remove(temp_audio_path)
+        return {"transcription": transcript["text"]}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"OpenAI STT Error: {str(e)}")
+
 
 @app.post("/tts")
-async def text_to_speech_api(text: str):
-    """Text-to-Speech (TTS) using OpenAI API."""
-    response = openai.Audio.create(
-        model="tts-1",
-        voice="alloy",
-        input=text
-    )
-    return {"audio_url": response["url"]}
+async def text_to_speech(text: str = Form(...)):
+    try:
+        response = openai.Audio.synthesize("tts-1", text)
+        return {"audio_url": response["url"]}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"OpenAI TTS Error: {str(e)}")
 
 
 if __name__ == "__main__":
-    uvicorn.run("app:app", host="0.0.0.0", port=8000, reload=True)
+    uvicorn.run(app, host="0.0.0.0", port=8000, reload=True)
