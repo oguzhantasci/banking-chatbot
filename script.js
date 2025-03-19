@@ -56,12 +56,12 @@ function sendMessage() {
 function textToSpeech(text) {
     fetch(TTS_API_URL, {
         method: "POST",
-        headers: { "Content-Type": "application/x-www-form-urlencoded" },
-        body: new URLSearchParams({ text: text })
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ text: text })
     })
     .then(response => response.json())
     .then(data => {
-        const audio = new Audio(`https://banking-chatbot-k0qe.onrender.com/${data.audio_file}`);
+        const audio = new Audio(data.audio_url);
         audio.play();
     })
     .catch(error => console.error("TTS Error:", error));

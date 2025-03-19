@@ -4,7 +4,6 @@ from langchain_core.tools import tool
 import pytz
 import json
 from typing import Dict, Any, List
-import whisper
 import os
 import speech_recognition as sr
 import openai
@@ -134,13 +133,14 @@ def fetch_customer_info(customer_id: str) -> dict:
 
 def transcribe_audio(audio_file_path: str) -> str:
     """
-    Converts an audio file into text using OpenAI Whisper.
-    :param audio_file_path: Path to the audio file (e.g., .wav, .mp3)
-    :return: Transcribed text
+    Converts an audio file into text using OpenAI Whisper API.
     """
-    model = whisper.load_model("base")
-    result = model.transcribe(audio_file_path)
-    return result["text"]
+    with open(audio_file_path, "rb") as audio_file:
+        response = openai.Audio.transcribe(
+            model="whisper-1",
+            file=audio_file
+        )
+    return response["text"]
 
 def record_audio(filename="user_input.wav", duration=5):
     """Record audio from the microphone and save it as a WAV file."""
