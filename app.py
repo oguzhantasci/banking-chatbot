@@ -3,13 +3,14 @@ from fastapi import FastAPI, HTTPException, UploadFile, File, Form
 from pydantic import BaseModel
 import openai
 import os
-from fastapi.middleware.cors import CORSMiddleware
 import tempfile
+from main import build_app, run_chatbot
+from fastapi.middleware.cors import CORSMiddleware
 
 # Initialize FastAPI app
 app = FastAPI()
 
-# Allow frontend to communicate with backend
+# Enable CORS for frontend communication
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -21,32 +22,27 @@ app.add_middleware(
 # Set OpenAI API Key securely
 openai.api_key = os.getenv("OPENAI_API_KEY")
 
+# Initialize AI App
+ai_app = build_app()
 
-# Chat request model
 class ChatRequest(BaseModel):
     customer_id: str
     message: str
 
-
 @app.post("/chat")
 async def chat(request: ChatRequest):
     try:
-        response = openai.ChatCompletion.create(
-            model="gpt-4-turbo",
-            messages=[
-                {"role": "system", "content": "You are a banking assistant."},
-                {"role": "user", "content": request.message}
-            ]
-        )
-
-        # Ensure response is valid
-        if "choices" not in response or not response["choices"]:
-            raise ValueError("Invalid OpenAI response format")
-
-        return {"response": response["choices"][0]["message"]["content"]}
+        config = {
+            "configurable": {
+                "thread_id": request.customer_id,
+                "checkpoint_ns": "banking_session",
+                "checkpoint_id": f"session_{request.customer_id}"
+            }
+        }
+        response = await run_chatbot(ai_app, request.message, request.customer_id, config)
+        return {"response": response}
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"OpenAI Error: {str(e)}")
-
+        raise HTTPException(status_code=500, detail=f"Chatbot Error: {str(e)}")
 
 @app.post("/stt")
 async def speech_to_text(file: UploadFile = File(...)):
@@ -61,7 +57,6 @@ async def speech_to_text(file: UploadFile = File(...)):
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"OpenAI STT Error: {str(e)}")
 
-
 @app.post("/tts")
 async def text_to_speech(text: str = Form(...)):
     try:
@@ -69,7 +64,6 @@ async def text_to_speech(text: str = Form(...)):
         return {"audio_url": response["url"]}
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"OpenAI TTS Error: {str(e)}")
-
 
 if __name__ == "__main__":
     uvicorn.run(app, host="0.0.0.0", port=8000, reload=True)
