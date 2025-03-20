@@ -5,9 +5,10 @@ import pytz
 import json
 from typing import Dict, Any, List
 import os
-import speech_recognition as sr
 import openai
-
+import sounddevice as sd
+import wave
+import numpy as np
 
 CUSTOMER_DATA_FILE = "custom_banking_data.json"
 
@@ -131,7 +132,7 @@ def fetch_customer_info(customer_id: str) -> dict:
     data = load_customer_data()
     return data.get(customer_id, {})
 
-def transcribe_audio(audio_file_path: str) -> str:
+def transcribe_audio_whisper(audio_file_path: str) -> str:
     """
     Converts an audio file into text using OpenAI Whisper API.
     """
@@ -141,17 +142,6 @@ def transcribe_audio(audio_file_path: str) -> str:
             file=audio_file
         )
     return response["text"]
-
-def record_audio(filename="user_input.wav", duration=5):
-    """Record audio from the microphone and save it as a WAV file."""
-    recognizer = sr.Recognizer()
-    with sr.Microphone() as source:
-        print("🎙 Lütfen konuşun...")
-        audio = recognizer.listen(source, timeout=duration)
-        with open(filename, "wb") as f:
-            f.write(audio.get_wav_data())
-
-    return filename
 
 
 # 🔊 **Text-to-Speech (TTS) Using OpenAI**
@@ -170,3 +160,20 @@ def text_to_speech(text: str, output_audio_path: str = "response_audio.wav"):
             audio_file.write(chunk)
 
     print(f"🔊 Audio saved to {output_audio_path}")
+
+
+# 🎙 **Record Audio Function**
+def record_audio(filename="user_input.wav", duration=5, samplerate=44100):
+    """Records audio from the microphone and saves it as a WAV file."""
+    print("🎤 Kayıt başlıyor...")
+    audio_data = sd.rec(int(duration * samplerate), samplerate=samplerate, channels=2, dtype=np.int16)
+    sd.wait()
+
+    with wave.open(filename, "wb") as wf:
+        wf.setnchannels(2)
+        wf.setsampwidth(2)
+        wf.setframerate(samplerate)
+        wf.writeframes(audio_data.tobytes())
+
+    print(f"✅ Ses kaydedildi: {filename}")
+    return filename

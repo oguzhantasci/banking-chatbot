@@ -1,6 +1,6 @@
-const API_URL = "https://your-render-app-url.onrender.com/chat";
-const STT_API_URL = "https://your-render-app-url.onrender.com/stt";
-const TTS_API_URL = "https://your-render-app-url.onrender.com/tts";
+const API_URL = "https://banking-chatbot-k0qe.onrender.com/chat";
+const STT_API_URL = "https://banking-chatbot-k0qe.onrender.com/stt";
+const TTS_API_URL = "https://banking-chatbot-k0qe.onrender.com/tts";
 
 let isRecording = false;
 let mediaRecorder;
