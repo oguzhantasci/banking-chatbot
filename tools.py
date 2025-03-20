@@ -155,19 +155,18 @@ def record_audio(filename="user_input.wav", duration=5):
 
 
 # 🔊 **Text-to-Speech (TTS) Using OpenAI**
-def text_to_speech(text: str, output_audio_path: str):
+def text_to_speech(text: str, output_audio_path: str = "response_audio.wav"):
     """
     Converts text to speech and saves it as an audio file.
-    :param text: The text to convert into speech
-    :param output_audio_path: Path where the audio file will be saved
     """
-    response = openai.Audio.create(
+    response = openai.audio.speech.create(
         model="tts-1",
-        voice="alloy",  # Choose a voice model (alloy, echo, fable, onyx, nova, or shimmer)
+        voice="alloy",  # Available voices: alloy, echo, fable, onyx, nova, shimmer
         input=text
     )
 
     with open(output_audio_path, "wb") as audio_file:
-        audio_file.write(response["data"])
+        for chunk in response.iter_bytes():
+            audio_file.write(chunk)
 
-    print(f"Audio saved to {output_audio_path}")
+    print(f"🔊 Audio saved to {output_audio_path}")
