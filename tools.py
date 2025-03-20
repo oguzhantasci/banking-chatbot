@@ -6,9 +6,6 @@ import json
 from typing import Dict, Any, List
 import os
 import openai
-import sounddevice as sd
-import wave
-import numpy as np
 
 CUSTOMER_DATA_FILE = "custom_banking_data.json"
 
@@ -160,20 +157,3 @@ def text_to_speech(text: str, output_audio_path: str = "response_audio.wav"):
             audio_file.write(chunk)
 
     print(f"🔊 Audio saved to {output_audio_path}")
-
-
-# 🎙 **Record Audio Function**
-def record_audio(filename="user_input.wav", duration=5, samplerate=44100):
-    """Records audio from the microphone and saves it as a WAV file."""
-    print("🎤 Kayıt başlıyor...")
-    audio_data = sd.rec(int(duration * samplerate), samplerate=samplerate, channels=2, dtype=np.int16)
-    sd.wait()
-
-    with wave.open(filename, "wb") as wf:
-        wf.setnchannels(2)
-        wf.setsampwidth(2)
-        wf.setframerate(samplerate)
-        wf.writeframes(audio_data.tobytes())
-
-    print(f"✅ Ses kaydedildi: {filename}")
-    return filename

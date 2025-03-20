@@ -20,7 +20,11 @@ app.add_middleware(
 )
 
 # Set OpenAI API Key securely
-openai.api_key = os.getenv("OPENAI_API_KEY")
+if not os.getenv("OPENAI_API_KEY"):
+    raise ValueError("❌ ERROR: OpenAI API Key is missing! Set it in Render Environment Variables.")
+
+os.environ["OPENAI_API_KEY"] = os.getenv("OPENAI_API_KEY")  # Set in env
+openai.api_key = os.getenv("OPENAI_API_KEY")  # Set for OpenAI API
 
 # Initialize AI App
 ai_app = build_app()
@@ -51,7 +55,10 @@ async def speech_to_text(file: UploadFile = File(...)):
             temp_audio.write(await file.read())
             temp_audio_path = temp_audio.name
 
-        transcript = openai.Audio.transcribe("whisper-1", open(temp_audio_path, "rb"))
+        transcript = openai.Audio.transcribe(
+            model="whisper-1",
+            file=open(temp_audio_path, "rb")
+        )
         os.remove(temp_audio_path)
         return {"transcription": transcript["text"]}
     except Exception as e:
@@ -60,8 +67,16 @@ async def speech_to_text(file: UploadFile = File(...)):
 @app.post("/tts")
 async def text_to_speech(text: str = Form(...)):
     try:
-        response = openai.Audio.synthesize("tts-1", text)
-        return {"audio_url": response["url"]}
+        response = openai.audio.speech.create(
+            model="tts-1",
+            voice="alloy",
+            input=text
+        )
+        audio_file_path = "response_audio.wav"
+        with open(audio_file_path, "wb") as audio_file:
+            for chunk in response.iter_bytes():
+                audio_file.write(chunk)
+        return {"audio_url": f"/{audio_file_path}"}
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"OpenAI TTS Error: {str(e)}")
 
