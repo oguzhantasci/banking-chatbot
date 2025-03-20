@@ -38,6 +38,11 @@ async def chat(request: ChatRequest):
                 {"role": "user", "content": request.message}
             ]
         )
+
+        # Ensure response is valid
+        if "choices" not in response or not response["choices"]:
+            raise ValueError("Invalid OpenAI response format")
+
         return {"response": response["choices"][0]["message"]["content"]}
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"OpenAI Error: {str(e)}")

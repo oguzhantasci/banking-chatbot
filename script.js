@@ -61,7 +61,17 @@ async function processSpeech(audioBlob) {
             method: "POST",
             body: formData,
         });
+
+        if (!response.ok) {
+            throw new Error(`STT API error: ${response.status}`);
+        }
+
         const data = await response.json();
+
+        if (!data.transcription) {
+            throw new Error("No transcription received");
+        }
+
         document.getElementById("userInput").value = data.transcription;
         sendMessage();
     } catch (error) {
@@ -71,6 +81,7 @@ async function processSpeech(audioBlob) {
 
     showLoading(false);
 }
+
 
 // ✉️ Send Text Message to Chatbot
 async function sendMessage() {
@@ -94,12 +105,21 @@ async function sendMessage() {
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ customer_id: customerId, message: userInput })
         });
+
+        if (!response.ok) {
+            throw new Error(`API error: ${response.status}`);
+        }
+        console.log("API Response:", response);
         const data = await response.json();
+        console.log("Chatbot Output:", data);
+        if (!data.response) {
+            throw new Error("No response from chatbot");
+        }
 
         // Display Bot Response
         chatbox.innerHTML += `<div class="chat-message">💬 Bot: ${data.response}</div>`;
 
-        // 🎤 Convert Response to Speech (TTS)
+        // 🔊 Convert Response to Speech (TTS)
         textToSpeech(data.response);
     } catch (error) {
         console.error("Error:", error);
@@ -109,6 +129,7 @@ async function sendMessage() {
     document.getElementById("userInput").value = "";
     showLoading(false);
 }
+
 
 // 🔊 Convert Bot Response to Speech (TTS)
 async function textToSpeech(text) {
