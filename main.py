@@ -3,7 +3,7 @@ import asyncio
 from langchain_core.messages import HumanMessage
 from graph import build_app
 from tools import is_valid_customer
-from tools import transcribe_audio, record_audio, text_to_speech
+from tools import transcribe_audio_whisper, record_audio, text_to_speech
 
 async def run_chatbot(app, query: str, customer_id: str, config: dict) -> str:
     """Müşteri ID doğrulama ve JSON veri kullanımı ile chatbot işlemi."""
