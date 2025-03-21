@@ -83,10 +83,10 @@ async def websocket_voice_endpoint(websocket: WebSocket):
                 temp_audio_path = temp_audio.name
 
             # Convert speech to text
-            transcript = openai.Audio.transcribe(
+            transcript = client.audio.transcriptions.create(
                 model="whisper-1",
                 file=open(temp_audio_path, "rb")
-            )["text"]
+            ).text
 
             os.remove(temp_audio_path)
 
