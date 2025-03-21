@@ -86,7 +86,7 @@ async def websocket_voice_endpoint(websocket: WebSocket):
             response = client.chat.completions.create(
                 model="gpt-4o",
                 messages=conversation_history[session_id]
-            )["choices"][0]["message"]["content"]
+            ).choices[0].message.content
 
             # Add AI response to chat history
             conversation_history[session_id].append({"role": "assistant", "content": response})
