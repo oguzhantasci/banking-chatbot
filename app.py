@@ -41,26 +41,15 @@ conversation_history = {}
 
 @app.post("/chat")
 async def chatbot_endpoint(customer_id: str = Form(...), message: str = Form(...)):
-    """Handles text-based chatbot interactions."""
-    session_id = customer_id
-
-    # Initialize conversation history
-    if session_id not in conversation_history:
-        conversation_history[session_id] = []
-
-    # Add user message to chat history
-    conversation_history[session_id].append({"role": "user", "content": message})
-
-    # Generate AI response using GPT-4o
-    response = client.chat.completions.create(
-        model="gpt-4o",
-        messages=conversation_history[session_id]
-    )
-    # Add AI response to chat history
-    ai_reply = response.choices[0].message.content
-    conversation_history[session_id].append({"role": "assistant", "content": ai_reply})
-
-    return {"response": ai_reply}
+    config = {
+        "configurable": {
+            "thread_id": customer_id,
+            "checkpoint_ns": "banking_session",
+            "checkpoint_id": f"session_{customer_id}"
+        }
+    }
+    response = await run_chatbot(ai_app, message, customer_id, config)
+    return {"response": response}
 
 @app.websocket("/ws")
 async def websocket_voice_endpoint(websocket: WebSocket):
@@ -94,7 +83,7 @@ async def websocket_voice_endpoint(websocket: WebSocket):
             conversation_history[session_id].append({"role": "user", "content": transcript})
 
             # Generate AI response using GPT-4o
-            response = openai.ChatCompletion.create(
+            response = client.chat.completions.create(
                 model="gpt-4o",
                 messages=conversation_history[session_id]
             )["choices"][0]["message"]["content"]
