@@ -103,14 +103,15 @@ async def websocket_voice_endpoint(websocket: WebSocket):
             conversation_history[session_id].append({"role": "assistant", "content": response})
 
             # Convert AI text response to speech
-            tts_response = openai.audio.speech.create(
+            tts_response = client.audio.speech.create(
                 model="tts-1",
                 voice="alloy",
                 input=response
             )
 
-            # Send voice response back to the user
-            await websocket.send_bytes(tts_response.content)
+            # Stream TTS response correctly
+            audio_bytes = b''.join([chunk async for chunk in tts_response.aiter_bytes()])
+            await websocket.send_bytes(audio_bytes)
 
     except Exception as e:
         print(f"Error: {str(e)}")
