@@ -6,6 +6,10 @@ import json
 from typing import Dict, Any, List
 import os
 import openai
+import pygame
+import pydub
+from pydub import AudioSegment
+from fastapi.responses import FileResponse
 
 CUSTOMER_DATA_FILE = "custom_banking_data.json"
 
@@ -157,3 +161,48 @@ def text_to_speech(text: str, output_audio_path: str = "response_audio.wav"):
             audio_file.write(chunk)
 
     print(f"🔊 Audio saved to {output_audio_path}")
+
+def play_audio(file_path):
+    pygame.mixer.init()
+    pygame.mixer.music.load(file_path)
+    pygame.mixer.music.play()
+    while pygame.mixer.music.get_busy():
+        continue
+
+def transcribe_audio(audio_file_path: str) -> str:
+    """
+    Converts an audio file into text using OpenAI Whisper API.
+    """
+    with open(audio_file_path, "rb") as audio_file:
+        transcript = openai.audio.transcriptions.create(
+            model="whisper-1",
+            file=audio_file,
+            response_format="text"
+        )
+    return transcript
+
+def synthesize_text(text: str, output_path: str = "static/response_audio.wav") -> str:
+    """
+    Converts text to speech using OpenAI and saves it to a WAV file for web playback.
+    """
+    response = openai.audio.speech.create(
+        model="tts-1",
+        voice="nova",
+        input=text
+    )
+
+    mp3_path = "temp_audio.mp3"
+    with open(mp3_path, "wb") as f:
+        for chunk in response.iter_bytes():
+            f.write(chunk)
+
+    sound = AudioSegment.from_mp3(mp3_path)
+    sound.export(output_path, format="wav")
+    os.remove(mp3_path)
+    return output_path
+
+def get_audio_response_file() -> FileResponse:
+    """
+    Returns the audio file response.
+    """
+    return FileResponse("static/response_audio.wav", media_type="audio/wav")

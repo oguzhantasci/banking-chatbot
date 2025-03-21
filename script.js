@@ -1,96 +1,88 @@
-const API_URL = "https://banking-chatbot-k0qe.onrender.com/chat";
-const WS_URL = "https://banking-chatbot-k0qe.onrender.com/ws";
+const chatForm = document.getElementById("chat-form");
+const chatInput = document.getElementById("chat-input");
+const chatBox = document.getElementById("chat-box");
+const customerIdInput = document.getElementById("customerId");
+const recordButton = document.getElementById("record-button");
+const audioPlayer = document.getElementById("audio-player");
 
-let websocket;
-let isVoiceActive = false;
+const backendHost = "https://banking-chatbot-k0qe.onrender.com";
 let mediaRecorder;
 let audioChunks = [];
+let socket;
 
-// 🎤 Start Real-time Voice Chat
-function toggleVoiceChat() {
-    if (!isVoiceActive) {
-        websocket = new WebSocket(WS_URL);
-        websocket.binaryType = "arraybuffer";
+chatForm.addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const query = chatInput.value.trim();
+  const customerId = customerIdInput.value.trim();
+  if (!query || !customerId) return;
 
-        websocket.onopen = () => {
-            alert("🎤 Voice Chat Started! Speak into your mic.");
-            startRecording();
-        };
+  appendMessage("🗣️ You", query);
+  chatInput.value = "";
 
-        websocket.onmessage = (event) => {
-            playAudio(event.data);
-        };
+  const response = await fetch(`${backendHost}/chat`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ query, customer_id: customerId }),
+  });
 
-        isVoiceActive = true;
+  const data = await response.json();
+  appendMessage("💬 Bot", data.response);
+  if (data.audio_url) {
+    audioPlayer.src = data.audio_url;
+    audioPlayer.play();
+  }
+});
+
+recordButton.addEventListener("click", async () => {
+  const customerId = customerIdInput.value.trim();
+  if (!customerId) {
+    alert("Lütfen müşteri ID girin.");
+    return;
+  }
+
+  socket = new WebSocket(`wss://banking-chatbot-k0qe.onrender.com/ws?customer_id=${customerId}`);
+  socket.binaryType = "arraybuffer";
+
+  socket.onopen = async () => {
+    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    mediaRecorder = new MediaRecorder(stream);
+    mediaRecorder.start();
+
+    mediaRecorder.ondataavailable = (event) => {
+      audioChunks.push(event.data);
+    };
+
+    mediaRecorder.onstop = async () => {
+      const audioBlob = new Blob(audioChunks, { type: "audio/wav" });
+      socket.send(await audioBlob.arrayBuffer());
+      audioChunks = [];
+    };
+
+    setTimeout(() => mediaRecorder.stop(), 4000);
+  };
+
+  socket.onmessage = async (event) => {
+    if (typeof event.data === "string") {
+      const data = JSON.parse(event.data);
+      appendMessage("💬 Bot", data.text);
     } else {
-        stopRecording();
-        websocket.close();
-        isVoiceActive = false;
-        alert("❌ Voice Chat Stopped!");
+      const audioBlob = new Blob([event.data], { type: "audio/wav" });
+      const audioUrl = URL.createObjectURL(audioBlob);
+      audioPlayer.src = audioUrl;
+      audioPlayer.play();
     }
-}
+  };
 
-// 🎙 Start browser recording and send to WebSocket
-function startRecording() {
-    navigator.mediaDevices.getUserMedia({ audio: true }).then(stream => {
-        mediaRecorder = new MediaRecorder(stream);
+  socket.onerror = (error) => console.error("WebSocket error:", error);
+  socket.onclose = () => console.log("WebSocket kapandı");
+});
 
-        mediaRecorder.ondataavailable = (e) => {
-            audioChunks.push(e.data);
-        };
-
-        mediaRecorder.onstop = async () => {
-            const audioBlob = new Blob(audioChunks, { type: 'audio/wav' });
-            audioChunks = [];
-
-            if (websocket.readyState === WebSocket.OPEN) {
-                const arrayBuffer = await audioBlob.arrayBuffer();
-                websocket.send(arrayBuffer);
-            }
-
-            if (isVoiceActive) {
-                // Continue recording for next message
-                startRecording();
-            }
-        };
-
-        mediaRecorder.start();
-
-        // Stop recording after 5 seconds
-        setTimeout(() => {
-            if (mediaRecorder && mediaRecorder.state !== "inactive") {
-                mediaRecorder.stop();
-            }
-        }, 5000);
-    });
-}
-
-function stopRecording() {
-    if (mediaRecorder && mediaRecorder.state !== "inactive") {
-        mediaRecorder.stop();
-    }
-}
-
-// 💬 Send Text Message
-function sendMessage() {
-    const customerId = document.getElementById("customerId").value;
-    const userInput = document.getElementById("userInput").value;
-    const chatbox = document.getElementById("chatbox");
-
-    fetch(API_URL, {
-        method: "POST",
-        headers: { "Content-Type": "application/x-www-form-urlencoded" },
-        body: new URLSearchParams({ customer_id: customerId, message: userInput })
-    })
-    .then(response => response.json())
-    .then(data => {
-        chatbox.innerHTML += `<p>🗣️ You: ${userInput}</p>`;
-        chatbox.innerHTML += `<p>💬 Bot: ${data.response}</p>`;
-    });
-}
-
-// 🔊 Play AI-Generated Speech Response
-function playAudio(audioBlob) {
-    const audio = new Audio(URL.createObjectURL(new Blob([audioBlob])));
-    audio.play();
+function appendMessage(sender, message) {
+  const messageElem = document.createElement("div");
+  messageElem.className = "message";
+  messageElem.innerHTML = `<strong>${sender}:</strong> ${message}`;
+  chatBox.appendChild(messageElem);
+  chatBox.scrollTop = chatBox.scrollHeight;
 }

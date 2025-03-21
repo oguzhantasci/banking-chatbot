@@ -1,110 +1,95 @@
 import uvicorn
-from fastapi import FastAPI, HTTPException, UploadFile, File, Form, WebSocket
 from pydantic import BaseModel
 import openai
-import os
-import tempfile
-from main import build_app, run_chatbot
+from fastapi import FastAPI, WebSocket, WebSocketDisconnect, Request
+from fastapi.responses import HTMLResponse, JSONResponse, FileResponse
+from graph import build_app
+from tools import transcribe_audio, synthesize_text
+from fastapi import FastAPI, WebSocket, Request, UploadFile, Form
+from fastapi.responses import JSONResponse, FileResponse
 from fastapi.middleware.cors import CORSMiddleware
-from openai import OpenAI
-
+from fastapi.staticfiles import StaticFiles
+import shutil
+import os
+import uuid
+import json
+from main import run_chatbot, build_app
+from tools import transcribe_audio, text_to_speech
 
 # Initialize FastAPI app
 app = FastAPI()
-client = OpenAI()
+app.mount("/static", StaticFiles(directory="static"), name="static")
 
-# Enable CORS for frontend communication
+# CORS (gerekirse localhost ve frontend için açılır)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
-    allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-# Set OpenAI API Key securely
-if not os.getenv("OPENAI_API_KEY"):
-    raise ValueError("❌ ERROR: OpenAI API Key is missing! Set it in Render Environment Variables.")
-
-os.environ["OPENAI_API_KEY"] = os.getenv("OPENAI_API_KEY")  # Set in env
-openai.api_key = os.getenv("OPENAI_API_KEY")  # Set for OpenAI API
-
-# Initialize AI App
-ai_app = build_app()
-
-class ChatRequest(BaseModel):
-    customer_id: str
-    message: str
-
-# Store conversation history
-conversation_history = {}
+config, chatbot_app = build_app()
 
 @app.post("/chat")
-async def chatbot_endpoint(customer_id: str = Form(...), message: str = Form(...)):
-    config = {
-        "configurable": {
-            "thread_id": customer_id,
-            "checkpoint_ns": "banking_session",
-            "checkpoint_id": f"session_{customer_id}"
-        }
+async def chatbot_endpoint(request: Request):
+    data = await request.json()
+    query = data.get("query", "")
+    customer_id = data.get("customer_id", "")
+
+    if not query or not customer_id:
+        return JSONResponse(content={"error": "Eksik parametre"}, status_code=400)
+
+    response = await run_chatbot(chatbot_app, query, customer_id, config)
+    output_audio_path = f"static/response_audio.wav"
+    text_to_speech(response, output_audio_path)
+
+    return {
+        "response": response,
+        "audio_url": "/static/response_audio.wav"
     }
-    response = await run_chatbot(ai_app, message, customer_id, config)
-    return {"response": response}
 
 @app.websocket("/ws")
 async def websocket_voice_endpoint(websocket: WebSocket):
-    """Handles real-time voice conversation over WebSocket."""
     await websocket.accept()
-    session_id = websocket.client.host
+    customer_id = websocket.query_params.get("customer_id")
 
-    # Initialize conversation history
-    if session_id not in conversation_history:
-        conversation_history[session_id] = []
+    if not customer_id:
+        await websocket.send_text(json.dumps({"error": "Müşteri ID alınamadı"}))
+        await websocket.close()
+        return
+
+    audio_filename = f"audio_{uuid.uuid4().hex}.wav"
+    with open(audio_filename, "wb") as audio_file:
+        try:
+            audio_data = await websocket.receive_bytes()
+            audio_file.write(audio_data)
+        except Exception as e:
+            await websocket.send_text(json.dumps({"error": str(e)}))
+            await websocket.close()
+            return
 
     try:
-        while True:
-            # Receive voice data
-            audio_data = await websocket.receive_bytes()
+        query = transcribe_audio(audio_filename)
+        await websocket.send_text(json.dumps({"text": query}))
 
-            # Save to temp file
-            with tempfile.NamedTemporaryFile(delete=False, suffix=".wav") as temp_audio:
-                temp_audio.write(audio_data)
-                temp_audio_path = temp_audio.name
+        config, chatbot_app = build_app()
+        response = await run_chatbot(chatbot_app, query, customer_id, config)
 
-            # Convert speech to text
-            transcript = client.audio.transcriptions.create(
-                model="whisper-1",
-                file=open(temp_audio_path, "rb")
-            ).text
+        audio_path = f"static/response_audio.wav"
+        text_to_speech(response, audio_path)
 
-            os.remove(temp_audio_path)
-
-            # Add user message to chat history
-            conversation_history[session_id].append({"role": "user", "content": transcript})
-
-            # Generate AI response using GPT-4o
-            response = client.chat.completions.create(
-                model="gpt-4o",
-                messages=conversation_history[session_id]
-            ).choices[0].message.content
-
-            # Add AI response to chat history
-            conversation_history[session_id].append({"role": "assistant", "content": response})
-
-            # Convert AI text response to speech
-            tts_response = client.audio.speech.create(
-                model="tts-1",
-                voice="alloy",
-                input=response
-            )
-
-            # Stream TTS response correctly
-            audio_bytes = b''.join([chunk async for chunk in tts_response.aiter_bytes()])
-            await websocket.send_bytes(audio_bytes)
+        with open(audio_path, "rb") as audio_file:
+            await websocket.send_bytes(audio_file.read())
 
     except Exception as e:
-        print(f"Error: {str(e)}")
-        await websocket.close()
+        await websocket.send_text(json.dumps({"error": f"İşlem hatası: {str(e)}"}))
+
+    await websocket.close()
+    os.remove(audio_filename)
+
+@app.get("/")
+async def root():
+    return {"message": "AI Banking Assistant is running 🎧💬"}
 
 if __name__ == "__main__":
     uvicorn.run(app, host="0.0.0.0", port=8000)

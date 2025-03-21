@@ -1,24 +1,31 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="tr">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AI Banking Assistant</title>
-    <link rel="stylesheet" href="styles.css">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AI Voice Banking Assistant</title>
+  <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
-    <h1>💳 AI Banking Assistant</h1>
+  <div class="container">
+    <h1>💳 AI Bankacılık Asistanı</h1>
 
-    <button onclick="toggleVoiceChat()">🎤 Start Voice Chat</button>
-    <button onclick="toggleTextChat()">💬 Start Text Chat</button>
-
-    <div id="chat-container" class="hidden">
-        <input type="text" id="customerId" placeholder="Enter Customer ID">
-        <input type="text" id="userInput" placeholder="Type your message...">
-        <button onclick="sendMessage()">Send</button>
-        <div id="chatbox"></div>
+    <div class="input-group">
+      <label for="customerId">Müşteri ID:</label>
+      <input type="text" id="customerId" placeholder="CUST0001" />
     </div>
 
-    <script src="script.js"></script>
+    <div class="chat-box" id="chat-box"></div>
+
+    <form id="chat-form">
+      <input type="text" id="chat-input" placeholder="Bir şeyler yazın..." />
+      <button type="submit">Gönder</button>
+    </form>
+
+    <button id="record-button">🎙️ Sesli Mesaj Gönder</button>
+    <audio id="audio-player" controls style="margin-top: 15px;"></audio>
+  </div>
+
+  <script src="script.js"></script>
 </body>
 </html>
