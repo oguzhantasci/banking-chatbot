@@ -6,9 +6,12 @@ import os
 import tempfile
 from main import build_app, run_chatbot
 from fastapi.middleware.cors import CORSMiddleware
+from openai import OpenAI
+
 
 # Initialize FastAPI app
 app = FastAPI()
+client = OpenAI()
 
 # Enable CORS for frontend communication
 app.add_middleware(
@@ -49,15 +52,15 @@ async def chatbot_endpoint(customer_id: str = Form(...), message: str = Form(...
     conversation_history[session_id].append({"role": "user", "content": message})
 
     # Generate AI response using GPT-4o
-    response = openai.ChatCompletion.create(
+    response = client.chat.completions.create(
         model="gpt-4o",
         messages=conversation_history[session_id]
-    )["choices"][0]["message"]["content"]
-
+    )
     # Add AI response to chat history
-    conversation_history[session_id].append({"role": "assistant", "content": response})
+    ai_reply = response.choices[0].message.content
+    conversation_history[session_id].append({"role": "assistant", "content": ai_reply})
 
-    return {"response": response}
+    return {"response": ai_reply}
 
 @app.websocket("/ws")
 async def websocket_voice_endpoint(websocket: WebSocket):
