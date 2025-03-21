@@ -1,106 +1,43 @@
 const API_URL = "https://banking-chatbot-k0qe.onrender.com/chat";
-const STT_API_URL = "https://banking-chatbot-k0qe.onrender.com/stt";
-const TTS_API_URL = "https://banking-chatbot-k0qe.onrender.com/tts";
+const WS_URL = "https://banking-chatbot-k0qe.onrender.com/ws";
 
-let isRecording = false;
-let mediaRecorder;
-let audioChunks = [];
+let websocket;
+let isVoiceActive = false;
 
-function toggleRecording() {
-    const recordButton = document.getElementById("recordButton");
-    if (!isRecording) {
-        startRecording();
-        recordButton.innerText = "⏹ Stop Voice";
+// 🎤 Start Real-time Voice Chat
+function toggleVoiceChat() {
+    if (!isVoiceActive) {
+        websocket = new WebSocket(WS_URL);
+        websocket.onmessage = (event) => playAudio(event.data);
+        isVoiceActive = true;
+        alert("🎤 Voice Chat Started! Speak into your mic.");
     } else {
-        stopRecording();
-        recordButton.innerText = "🎤 Start Voice";
-    }
-    isRecording = !isRecording;
-}
-
-async function startRecording() {
-    try {
-        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-        mediaRecorder = new MediaRecorder(stream);
-        mediaRecorder.ondataavailable = event => {
-            audioChunks.push(event.data);
-        };
-        mediaRecorder.onstop = async () => {
-            const audioBlob = new Blob(audioChunks, { type: "audio/wav" });
-            audioChunks = [];
-            processSpeech(audioBlob);
-        };
-        mediaRecorder.start();
-    } catch (error) {
-        console.error("Error accessing microphone:", error);
+        websocket.close();
+        isVoiceActive = false;
+        alert("❌ Voice Chat Stopped!");
     }
 }
 
-function stopRecording() {
-    if (mediaRecorder && mediaRecorder.state !== "inactive") {
-        mediaRecorder.stop();
-    }
-}
-
-async function processSpeech(audioBlob) {
-    showLoading(true);
-    const formData = new FormData();
-    formData.append("file", audioBlob);
-    try {
-        const response = await fetch(STT_API_URL, { method: "POST", body: formData });
-        const data = await response.json();
-        document.getElementById("userInput").value = data.transcription;
-        sendMessage();
-    } catch (error) {
-        console.error("STT Error:", error);
-    }
-    showLoading(false);
-}
-
-async function sendMessage() {
+// 💬 Send Text Message
+function sendMessage() {
     const customerId = document.getElementById("customerId").value;
     const userInput = document.getElementById("userInput").value;
     const chatbox = document.getElementById("chatbox");
-    if (!customerId || !userInput) {
-        alert("Please enter your Customer ID and message.");
-        return;
-    }
-    chatbox.innerHTML += `<div class="chat-message user-message">You: ${userInput}</div>`;
-    showLoading(true);
-    try {
-        const response = await fetch(API_URL, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ customer_id: customerId, message: userInput })
-        });
-        const data = await response.json();
-        chatbox.innerHTML += `<div class="chat-message">💬 Bot: ${data.response}</div>`;
-        textToSpeech(data.response);
-    } catch (error) {
-        console.error("Error:", error);
-        chatbox.innerHTML += `<div class="chat-message error">❌ Error: Unable to fetch response.</div>`;
-    }
-    document.getElementById("userInput").value = "";
-    showLoading(false);
+
+    fetch(API_URL, {
+        method: "POST",
+        headers: { "Content-Type": "application/x-www-form-urlencoded" },
+        body: new URLSearchParams({ customer_id: customerId, message: userInput })
+    })
+    .then(response => response.json())
+    .then(data => {
+        chatbox.innerHTML += `<p>🗣️ You: ${userInput}</p>`;
+        chatbox.innerHTML += `<p>💬 Bot: ${data.response}</p>`;
+    });
 }
 
-async function textToSpeech(text) {
-    showLoading(true);
-    try {
-        const response = await fetch(TTS_API_URL, {
-            method: "POST",
-            headers: { "Content-Type": "application/x-www-form-urlencoded" },
-            body: new URLSearchParams({ text: text })
-        });
-        const data = await response.json();
-        const audio = new Audio(data.audio_url);
-        audio.play();
-    } catch (error) {
-        console.error("TTS Error:", error);
-    }
-    showLoading(false);
-}
-
-function showLoading(isLoading) {
-    document.getElementById("loadingIndicator").classList.toggle("hidden", !isLoading);
+// 🔊 Play AI-Generated Speech Response
+function playAudio(audioBlob) {
+    const audio = new Audio(URL.createObjectURL(new Blob([audioBlob])));
+    audio.play();
 }

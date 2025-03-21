@@ -3,22 +3,19 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AI Voice Chatbot</title>
+    <title>AI Banking Assistant</title>
     <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-    <div class="chat-container">
-        <h1>🔊 AI Voice Chatbot</h1>
-        <p>Ask a question via text or voice</p>
+    <h1>💳 AI Banking Assistant</h1>
 
+    <button onclick="toggleVoiceChat()">🎤 Start Voice Chat</button>
+    <button onclick="toggleTextChat()">💬 Start Text Chat</button>
+
+    <div id="chat-container" class="hidden">
         <input type="text" id="customerId" placeholder="Enter Customer ID">
         <input type="text" id="userInput" placeholder="Type your message...">
-
         <button onclick="sendMessage()">Send</button>
-        <button id="recordButton" onclick="toggleRecording()">🎤 Start Voice</button>
-
-        <div id="loadingIndicator" class="hidden">⏳ Processing...</div>
-
         <div id="chatbox"></div>
     </div>
 

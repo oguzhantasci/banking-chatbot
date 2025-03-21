@@ -1,5 +1,5 @@
 import uvicorn
-from fastapi import FastAPI, HTTPException, UploadFile, File, Form
+from fastapi import FastAPI, HTTPException, UploadFile, File, Form, WebSocket
 from pydantic import BaseModel
 import openai
 import os
@@ -33,52 +33,85 @@ class ChatRequest(BaseModel):
     customer_id: str
     message: str
 
+# Store conversation history
+conversation_history = {}
+
 @app.post("/chat")
-async def chat(request: ChatRequest):
-    try:
-        config = {
-            "configurable": {
-                "thread_id": request.customer_id,
-                "checkpoint_ns": "banking_session",
-                "checkpoint_id": f"session_{request.customer_id}"
-            }
-        }
-        response = await run_chatbot(ai_app, request.message, request.customer_id, config)
-        return {"response": response}
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Chatbot Error: {str(e)}")
+async def chatbot_endpoint(customer_id: str = Form(...), message: str = Form(...)):
+    """Handles text-based chatbot interactions."""
+    session_id = customer_id
 
-@app.post("/stt")
-async def speech_to_text(file: UploadFile = File(...)):
-    try:
-        with tempfile.NamedTemporaryFile(delete=False, suffix=".wav") as temp_audio:
-            temp_audio.write(await file.read())
-            temp_audio_path = temp_audio.name
+    # Initialize conversation history
+    if session_id not in conversation_history:
+        conversation_history[session_id] = []
 
-        transcript = openai.Audio.transcribe(
-            model="whisper-1",
-            file=open(temp_audio_path, "rb")
-        )
-        os.remove(temp_audio_path)
-        return {"transcription": transcript["text"]}
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"OpenAI STT Error: {str(e)}")
+    # Add user message to chat history
+    conversation_history[session_id].append({"role": "user", "content": message})
 
-@app.post("/tts")
-async def text_to_speech(text: str = Form(...)):
+    # Generate AI response using GPT-4o
+    response = openai.ChatCompletion.create(
+        model="gpt-4o",
+        messages=conversation_history[session_id]
+    )["choices"][0]["message"]["content"]
+
+    # Add AI response to chat history
+    conversation_history[session_id].append({"role": "assistant", "content": response})
+
+    return {"response": response}
+
+@app.websocket("/ws")
+async def websocket_voice_endpoint(websocket: WebSocket):
+    """Handles real-time voice conversation over WebSocket."""
+    await websocket.accept()
+    session_id = websocket.client.host
+
+    # Initialize conversation history
+    if session_id not in conversation_history:
+        conversation_history[session_id] = []
+
     try:
-        response = openai.audio.speech.create(
-            model="tts-1",
-            voice="alloy",
-            input=text
-        )
-        audio_file_path = "response_audio.wav"
-        with open(audio_file_path, "wb") as audio_file:
-            for chunk in response.iter_bytes():
-                audio_file.write(chunk)
-        return {"audio_url": f"/{audio_file_path}"}
+        while True:
+            # Receive voice data
+            audio_data = await websocket.receive_bytes()
+
+            # Save to temp file
+            with tempfile.NamedTemporaryFile(delete=False, suffix=".wav") as temp_audio:
+                temp_audio.write(audio_data)
+                temp_audio_path = temp_audio.name
+
+            # Convert speech to text
+            transcript = openai.Audio.transcribe(
+                model="whisper-1",
+                file=open(temp_audio_path, "rb")
+            )["text"]
+
+            os.remove(temp_audio_path)
+
+            # Add user message to chat history
+            conversation_history[session_id].append({"role": "user", "content": transcript})
+
+            # Generate AI response using GPT-4o
+            response = openai.ChatCompletion.create(
+                model="gpt-4o",
+                messages=conversation_history[session_id]
+            )["choices"][0]["message"]["content"]
+
+            # Add AI response to chat history
+            conversation_history[session_id].append({"role": "assistant", "content": response})
+
+            # Convert AI text response to speech
+            tts_response = openai.audio.speech.create(
+                model="tts-1",
+                voice="alloy",
+                input=response
+            )
+
+            # Send voice response back to the user
+            await websocket.send_bytes(tts_response.content)
+
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"OpenAI TTS Error: {str(e)}")
+        print(f"Error: {str(e)}")
+        await websocket.close()
 
 if __name__ == "__main__":
-    uvicorn.run(app, host="0.0.0.0", port=8000, reload=True)
+    uvicorn.run(app, host="0.0.0.0", port=8000)
