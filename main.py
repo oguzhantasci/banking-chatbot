@@ -22,7 +22,6 @@ async def run_chatbot(app, query: str, customer_id: str, config: dict) -> str:
         result += response + "\n"
 
     text_to_speech(result.strip(), "response_audio.wav")  # Yanıtı sesli oku
-    play_audio("response_audio.wav")  # Yanıtı hoparlörden çal
 
     print(f"\n✅ AI Yanıtı:\n{result.strip()}")
     return result.strip()
