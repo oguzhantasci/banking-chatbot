@@ -81,22 +81,26 @@ recordButton.addEventListener("click", async () => {
     }
   };
 
-  socket.onmessage = (event) => {
-    if (typeof event.data === "string") {
-      try {
-        const data = JSON.parse(event.data);
-        const botText = data.response || data.text || "⚠️ Bot cevabı alınamadı.";
-        appendMessage("🤖 Bot", botText);
-      } catch (e) {
-        console.warn("🧩 Geçersiz JSON mesajı:", event.data);
-      }
-    } else {
-      const audioBlob = new Blob([event.data], { type: "audio/wav" });
-      const audioUrl = URL.createObjectURL(audioBlob);
-      audioPlayer.src = audioUrl;
-      audioPlayer.play();
+socket.onmessage = async (event) => {
+  if (typeof event.data === "string") {
+    const data = JSON.parse(event.data);
+    const userText = data.query || data.transcript || null; // 👈 yeni ek
+    const botText = data.response || data.text || "⚠️ Bot cevabı alınamadı.";
+
+    // ✅ Sesli sorguyu kullanıcı mesajı olarak göster
+    if (userText) {
+      appendMessage("🗣️ Siz", userText);
     }
-  };
+
+    appendMessage("🤖 Bot", botText);
+  } else {
+    const audioBlob = new Blob([event.data], { type: "audio/wav" });
+    const audioUrl = URL.createObjectURL(audioBlob);
+    audioPlayer.src = audioUrl;
+    audioPlayer.play();
+  }
+};
+
 
   socket.onerror = (error) => {
     console.error("WebSocket hatası:", error);
