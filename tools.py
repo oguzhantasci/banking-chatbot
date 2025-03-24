@@ -10,6 +10,10 @@ import pygame
 import pydub
 from pydub import AudioSegment
 from fastapi.responses import FileResponse
+from openai import AsyncOpenAI
+import base64
+
+client = AsyncOpenAI()
 
 CUSTOMER_DATA_FILE = "custom_banking_data.json"
 
@@ -133,23 +137,6 @@ def fetch_customer_info(customer_id: str) -> dict:
     data = load_customer_data()
     return data.get(customer_id, {})
 
-def transcribe_audio_whisper(audio_file_path: str) -> str:
-    """
-    Türkçe dilinde bir ses dosyasını metne dönüştürür.
-    OpenAI Whisper API kullanır ve Türkçe dil parametresi ile çağrılır.
-    """
-    try:
-        with open(audio_file_path, "rb") as audio_file:
-            response = openai.Audio.transcribe(
-                model="whisper-1",
-                file=audio_file,
-                language="tr"  # 🔥 Türkçe için açıkça belirtiliyor
-            )
-        return response["text"]
-    except Exception as e:
-        print(f"⚠️ Ses tanıma hatası: {e}")
-        return "⚠️ Ses çözümlenemedi."
-
 
 # 🔊 **Text-to-Speech (TTS) Using OpenAI**
 def text_to_speech(text: str, output_audio_path: str = "response_audio.wav"):
@@ -175,20 +162,20 @@ def play_audio(file_path):
     while pygame.mixer.music.get_busy():
         continue
 
-def transcribe_audio(audio_file_path: str) -> str:
+async def transcribe_audio(audio_file_path: str) -> str:
     """
-    Türkçe ses dosyasını metne çevirir.
-    Whisper API kullanır, dil olarak Türkçe ('tr') açıkça belirtilir.
+    Türkçe ses dosyasını metne çevirir (Whisper API).
+    OpenAI 1.x sürümü uyumlu.
     """
     try:
         with open(audio_file_path, "rb") as audio_file:
-            response = openai.Audio.transcribe(
+            transcript = await client.audio.transcriptions.create(
                 model="whisper-1",
                 file=audio_file,
-                language="tr",  # 🔥 Zorunlu: Türkçe için
+                language="tr",  # Türkçe belirtildi
                 response_format="text"
             )
-        return response.strip()
+        return transcript.strip()
     except Exception as e:
         print(f"⚠️ Ses tanıma hatası: {e}")
         return "⚠️ Ses çözümlenemedi."
@@ -218,3 +205,19 @@ def get_audio_response_file() -> FileResponse:
     Returns the audio file response.
     """
     return FileResponse("static/response_audio.wav", media_type="audio/wav")
+
+async def generate_speech_base64(text: str) -> str:
+    """
+    Yanıtı ses dosyasına çevirip base64 string olarak döner.
+    """
+    try:
+        audio_response = await client.audio.speech.create(
+            model="tts-1",
+            voice="alloy",
+            input=text
+        )
+        audio_bytes = await audio_response.read()  # ✔️ Corrected for async
+        return base64.b64encode(audio_bytes).decode("utf-8")
+    except Exception as e:
+        print(f"🔊 Ses üretim hatası: {e}")
+        return ""

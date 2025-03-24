@@ -14,23 +14,23 @@ import os
 import uuid
 import json
 from main import run_chatbot, build_app
-from tools import transcribe_audio, text_to_speech
+from tools import transcribe_audio, text_to_speech, generate_speech_base64, is_valid_customer
 from fastapi.responses import StreamingResponse
 import io
 import base64
 
 # Initialize FastAPI app
 app = FastAPI()
+chatbot_app = build_app()
 
 # CORS (gerekirse localhost ve frontend için açılır)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
+    allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
-
-chatbot_app = build_app()
 
 @app.post("/chat")
 async def chatbot_endpoint(request: Request):
@@ -38,73 +38,65 @@ async def chatbot_endpoint(request: Request):
     query = data.get("query", "")
     customer_id = data.get("customer_id", "")
 
-    if not query or not customer_id:
-        return JSONResponse(content={"error": "Eksik parametre"}, status_code=400)
+    if not is_valid_customer(customer_id):
+        return JSONResponse(content={"response": "❌ Geçersiz müşteri ID."}, status_code=400)
 
     config = {
         "configurable": {
             "thread_id": customer_id,
             "checkpoint_ns": "banking_session",
-            "checkpoint_id": f"session_{customer_id}"
+            "checkpoint_id": f"webchat_{customer_id}"
         }
     }
 
     response = await run_chatbot(chatbot_app, query, customer_id, config)
 
-    audio_response = openai.audio.speech.create(
-        model="tts-1",
-        voice="alloy",
-        input=response
-    )
-    audio_bytes = b"".join(chunk async for chunk in audio_response.aiter_bytes())
-    audio_base64 = base64.b64encode(audio_bytes).decode("utf-8")
+    audio_base64 = await generate_speech_base64(response)
 
     return JSONResponse(content={
         "response": response,
         "audio": audio_base64
     })
 
+
 @app.websocket("/ws")
-async def websocket_voice_endpoint(websocket: WebSocket):
+async def websocket_endpoint(websocket: WebSocket):
     await websocket.accept()
-    customer_id = websocket.query_params.get("customer_id")
+    customer_id = websocket.query_params.get("customer_id", "anon")
 
-    if not customer_id:
-        await websocket.send_text(json.dumps({"error": "Müşteri ID alınamadı"}))
-        await websocket.close()
-        return
-
-    audio_filename = f"audio_{uuid.uuid4().hex}.wav"
-    with open(audio_filename, "wb") as audio_file:
-        try:
-            audio_data = await websocket.receive_bytes()
-            audio_file.write(audio_data)
-        except Exception as e:
-            await websocket.send_text(json.dumps({"error": str(e)}))
-            await websocket.close()
-            return
+    config = {
+        "configurable": {
+            "thread_id": customer_id,
+            "checkpoint_ns": "banking_session",
+            "checkpoint_id": f"voicebot_{customer_id}"
+        }
+    }
 
     try:
-        query = transcribe_audio(audio_filename)
-        await websocket.send_text(json.dumps({"text": query}))
+        audio_data = await websocket.receive_bytes()
 
-        config, chatbot_app = build_app()
+        with tempfile.NamedTemporaryFile(delete=False, suffix=".wav") as temp_audio:
+            temp_audio.write(audio_data)
+            audio_file_path = temp_audio.name
+
+        query = await transcribe_audio(audio_file_path)
+
+        if not query or query.startswith("⚠️"):
+            await websocket.send_json({"text": "⚠️ Ses çözümlenemedi."})
+            return
+
         response = await run_chatbot(chatbot_app, query, customer_id, config)
+        audio_base64 = await generate_speech_base64(response)
 
-        audio_response = openai.audio.speech.create(
-            model="tts-1",
-            voice="alloy",
-            input=response
-        )
-        audio_bytes = b"".join(chunk async for chunk in audio_response.aiter_bytes())
-        await websocket.send_bytes(audio_bytes)
-
+        await websocket.send_json({"text": response})
+        await websocket.send_bytes(base64.b64decode(audio_base64))
 
     except Exception as e:
-        await websocket.send_text(json.dumps({"error": f"İşlem hatası: {str(e)}"}))
+        print(f"❌ WebSocket Error: {e}")
+        await websocket.send_json({"text": f"⚠️ Hata: {e}"})
 
-    await websocket.close()
-    os.remove(audio_filename)
+    finally:
+        await websocket.close()
 
 @app.get("/")
 async def root():
