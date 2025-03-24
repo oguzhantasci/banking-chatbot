@@ -29,7 +29,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-config, chatbot_app = build_app()
+chatbot_app = build_app()
 
 @app.post("/chat")
 async def chatbot_endpoint(request: Request):
@@ -40,18 +40,24 @@ async def chatbot_endpoint(request: Request):
     if not query or not customer_id:
         return JSONResponse(content={"error": "Eksik parametre"}, status_code=400)
 
+    config = {
+        "configurable": {
+            "thread_id": customer_id,
+            "checkpoint_ns": "banking_session",
+            "checkpoint_id": f"session_{customer_id}"
+        }
+    }
+
     response = await run_chatbot(chatbot_app, query, customer_id, config)
 
-    # Generate audio in memory
     audio_response = openai.audio.speech.create(
         model="tts-1",
         voice="alloy",
         input=response
     )
     audio_bytes = b"".join(chunk async for chunk in audio_response.aiter_bytes())
-    audio_stream = io.BytesIO(audio_bytes)
+    return StreamingResponse(io.BytesIO(audio_bytes), media_type="audio/wav")
 
-    return StreamingResponse(audio_stream, media_type="audio/wav")
 
 @app.websocket("/ws")
 async def websocket_voice_endpoint(websocket: WebSocket):
