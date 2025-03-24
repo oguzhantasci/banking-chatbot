@@ -1,11 +1,9 @@
 import sys
 import asyncio
+import base64
 from langchain_core.messages import HumanMessage
 from graph import build_app
-from tools import is_valid_customer
-from tools import transcribe_audio, text_to_speech, play_audio, generate_speech_base64
-import base64
-import os
+from tools import is_valid_customer, transcribe_audio, generate_speech_base64
 
 async def run_chatbot(app, query: str, customer_id: str, config: dict) -> str:
     """
@@ -33,8 +31,9 @@ async def run_chatbot(app, query: str, customer_id: str, config: dict) -> str:
         return "⚠️ Bot cevabı alınamadı."
 
 async def interactive_mode(app):
-    """Terminalde etkileşimli AI bankacılık deneyimi (text + sesli yanıt)."""
-
+    """
+    Terminalde etkileşimli AI bankacılık deneyimi (text + sesli yanıt).
+    """
     print("\n💳 AI Bankacılık Asistanına Hoş Geldiniz!")
     print("Bakiyenizi öğrenin, işlem yapın veya son hareketlerinizi sorgulayın.")
     print("Çıkmak için 'exit' yazın.\n")
@@ -62,9 +61,9 @@ async def interactive_mode(app):
 
         print("🔄 İşleniyor...")
         response = await run_chatbot(app, query, customer_id, config)
-
         print(f"\n🤖 AI Yanıtı:\n{response}")
 
+        # ✅ Text-to-Speech
         audio_base64 = await generate_speech_base64(response)
         if audio_base64:
             audio_path = "response_audio.wav"
@@ -96,4 +95,3 @@ async def main():
 
 if __name__ == '__main__':
     asyncio.run(main())
-

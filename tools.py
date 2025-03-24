@@ -1,18 +1,9 @@
-import pandas as pd
-import datetime
 from langchain_core.tools import tool
-import pytz
 import json
-from typing import Dict, Any, List
-import os
-import openai
-import pygame
-import pydub
-from pydub import AudioSegment
-from fastapi.responses import FileResponse
+from typing import List
 from openai import AsyncOpenAI
 import base64
-import tempfile
+import openai
 
 client = AsyncOpenAI()
 
@@ -138,42 +129,14 @@ def fetch_customer_info(customer_id: str) -> dict:
     data = load_customer_data()
     return data.get(customer_id, {})
 
-
-# 🔊 **Text-to-Speech (TTS) Using OpenAI**
-def text_to_speech(text: str, output_audio_path: str = "response_audio.wav"):
-    """
-    Converts text to speech and saves it as an audio file.
-    """
-    response = openai.audio.speech.create(
-        model="tts-1",
-        voice="alloy",  # Available voices: alloy, echo, fable, onyx, nova, shimmer
-        input=text
-    )
-
-    with open(output_audio_path, "wb") as audio_file:
-        for chunk in response.iter_bytes():
-            audio_file.write(chunk)
-
-    print(f"🔊 Audio saved to {output_audio_path}")
-
-def play_audio(file_path):
-    pygame.mixer.init()
-    pygame.mixer.music.load(file_path)
-    pygame.mixer.music.play()
-    while pygame.mixer.music.get_busy():
-        continue
-
+# ✅ Türkçe Sesli Girdiyi Metne Çevir
 async def transcribe_audio(audio_file_path: str) -> str:
-    """
-    Türkçe ses dosyasını metne çevirir (Whisper API).
-    OpenAI 1.x sürümü uyumlu.
-    """
     try:
         with open(audio_file_path, "rb") as audio_file:
             transcript = await client.audio.transcriptions.create(
-                model="whisper-1",
+                model="gpt-4o-transcribe",
                 file=audio_file,
-                language="tr",  # Türkçe belirtildi
+                language="tr",
                 response_format="text"
             )
         return transcript.strip()
@@ -181,43 +144,16 @@ async def transcribe_audio(audio_file_path: str) -> str:
         print(f"⚠️ Ses tanıma hatası: {e}")
         return "⚠️ Ses çözümlenemedi."
 
-def synthesize_text(text: str, output_path: str = "static/response_audio.wav") -> str:
-    """
-    Converts text to speech using OpenAI and saves it to a WAV file for web playback.
-    """
-    response = openai.audio.speech.create(
-        model="tts-1",
-        voice="nova",
-        input=text
-    )
 
-    mp3_path = "temp_audio.mp3"
-    with open(mp3_path, "wb") as f:
-        for chunk in response.iter_bytes():
-            f.write(chunk)
-
-    sound = AudioSegment.from_mp3(mp3_path)
-    sound.export(output_path, format="wav")
-    os.remove(mp3_path)
-    return output_path
-
-def get_audio_response_file() -> FileResponse:
-    """
-    Returns the audio file response.
-    """
-    return FileResponse("static/response_audio.wav", media_type="audio/wav")
-
+# ✅ Text-to-Speech - WAV Ses Dosyası Oluşturur
 async def generate_speech_base64(text: str) -> str:
-    """
-    Yanıtı ses dosyasına çevirip base64 string olarak döner.
-    """
     try:
-        audio_response = await client.audio.speech.create(
-            model="tts-1",
-            voice="alloy",
+        response = await client.audio.speech.create(
+            model="gpt-4o-mini-tts",
+            voice="nova",
             input=text
         )
-        audio_bytes = await audio_response.read()  # ✔️ Corrected for async
+        audio_bytes = await response.aread()
         return base64.b64encode(audio_bytes).decode("utf-8")
     except Exception as e:
         print(f"🔊 Ses üretim hatası: {e}")
