@@ -135,14 +135,20 @@ def fetch_customer_info(customer_id: str) -> dict:
 
 def transcribe_audio_whisper(audio_file_path: str) -> str:
     """
-    Converts an audio file into text using OpenAI Whisper API.
+    Türkçe dilinde bir ses dosyasını metne dönüştürür.
+    OpenAI Whisper API kullanır ve Türkçe dil parametresi ile çağrılır.
     """
-    with open(audio_file_path, "rb") as audio_file:
-        response = openai.Audio.transcribe(
-            model="whisper-1",
-            file=audio_file
-        )
-    return response["text"]
+    try:
+        with open(audio_file_path, "rb") as audio_file:
+            response = openai.Audio.transcribe(
+                model="whisper-1",
+                file=audio_file,
+                language="tr"  # 🔥 Türkçe için açıkça belirtiliyor
+            )
+        return response["text"]
+    except Exception as e:
+        print(f"⚠️ Ses tanıma hatası: {e}")
+        return "⚠️ Ses çözümlenemedi."
 
 
 # 🔊 **Text-to-Speech (TTS) Using OpenAI**

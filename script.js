@@ -28,8 +28,14 @@ chatForm.addEventListener("submit", async (e) => {
   });
 
   const data = await response.json();
-  const botMessage = data.response || "⚠️ Yanıt alınamadı.";
-  appendMessage("💬 Bot", botMessage);
+  const botText = data.response || "⚠️ Yanıt alınamadı.";
+  appendMessage("💬 Bot", botText);
+
+  // Ses varsa çal
+  if (data.audio) {
+    const audio = new Audio(`data:audio/wav;base64,${data.audio}`);
+    audio.play();
+  }
 
   if (data.audio_url) {
     audioPlayer.src = data.audio_url;

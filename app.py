@@ -17,6 +17,7 @@ from main import run_chatbot, build_app
 from tools import transcribe_audio, text_to_speech
 from fastapi.responses import StreamingResponse
 import io
+import base64
 
 # Initialize FastAPI app
 app = FastAPI()
@@ -50,21 +51,18 @@ async def chatbot_endpoint(request: Request):
 
     response = await run_chatbot(chatbot_app, query, customer_id, config)
 
-    # Generate audio in memory
     audio_response = openai.audio.speech.create(
         model="tts-1",
         voice="alloy",
         input=response
     )
     audio_bytes = b"".join(chunk async for chunk in audio_response.aiter_bytes())
-    audio_base64 = audio_bytes.hex()  # Convert to hex string or base64
+    audio_base64 = base64.b64encode(audio_bytes).decode("utf-8")
 
-    return {
+    return JSONResponse(content={
         "response": response,
-        "audio": audio_base64  # You can decode on frontend
-    }
-
-
+        "audio": audio_base64
+    })
 
 @app.websocket("/ws")
 async def websocket_voice_endpoint(websocket: WebSocket):
