@@ -134,7 +134,7 @@ async def transcribe_audio(audio_file_path: str) -> str:
     try:
         with open(audio_file_path, "rb") as audio_file:
             transcript = await client.audio.transcriptions.create(
-                model="gpt-4o-transcribe",
+                model="whisper-1",
                 file=audio_file,
                 language="tr",
                 response_format="text"
