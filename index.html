@@ -3,27 +3,36 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>AI Voice Banking Assistant</title>
+  <title>💬 AI Bankacılık Asistanı</title>
   <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
-  <div class="container">
+  <div class="chat-container">
     <h1>💳 AI Bankacılık Asistanı</h1>
 
     <div class="input-group">
-      <label for="customerId">Müşteri ID:</label>
-      <input type="text" id="customerId" placeholder="CUST0001" />
+      <label for="customerId">Müşteri ID:</label><br />
+      <input type="text" id="customerId" placeholder="Örn: CUST0001" />
     </div>
 
-    <div class="chat-box" id="chat-box"></div>
+    <div id="chat-box">
+      <!-- Bot ve kullanıcı mesajları buraya gelecek -->
+    </div>
 
     <form id="chat-form">
-      <input type="text" id="chat-input" placeholder="Bir şeyler yazın..." />
-      <button type="submit">Gönder</button>
+      <input
+        type="text"
+        id="chat-input"
+        placeholder="Mesajınızı yazın..."
+        autocomplete="off"
+      />
+      <button type="submit">📩 Gönder</button>
     </form>
 
-    <button id="record-button">🎙️ Sesli Mesaj Gönder</button>
-    <audio id="audio-player" controls style="margin-top: 15px;"></audio>
+    <button id="record-button" style="margin-top: 10px;">🎙️ Sesli Mesaj Gönder</button>
+
+    <!-- Görünür ses çalıcı -->
+    <audio id="audio-player" controls style="margin-top: 15px; width: 100%;"></audio>
   </div>
 
   <script src="script.js"></script>

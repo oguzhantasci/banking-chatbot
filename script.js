@@ -16,7 +16,7 @@ chatForm.addEventListener("submit", async (e) => {
   const customerId = customerIdInput.value.trim();
   if (!query || !customerId) return;
 
-  appendMessage("🗣️ You", query);
+  appendMessage("🗣️ Siz", query);
   chatInput.value = "";
 
   const response = await fetch(`${backendHost}/chat`, {
@@ -28,18 +28,15 @@ chatForm.addEventListener("submit", async (e) => {
   });
 
   const data = await response.json();
-  const botText = data.response || "⚠️ Yanıt alınamadı.";
-  appendMessage("💬 Bot", botText);
 
-  // Ses varsa çal
+  // ✅ Bot yanıtını ekrana yaz
+  const botText = data.response || data.text || "⚠️ Yanıt alınamadı.";
+  appendMessage("🤖 Bot", botText);
+
+  // ✅ Ses varsa çal
   if (data.audio) {
     const audio = new Audio(`data:audio/wav;base64,${data.audio}`);
     audio.play();
-  }
-
-  if (data.audio_url) {
-    audioPlayer.src = data.audio_url;
-    audioPlayer.play();
   }
 });
 
@@ -68,13 +65,15 @@ recordButton.addEventListener("click", async () => {
       audioChunks = [];
     };
 
+    // 4 saniyelik kayıt
     setTimeout(() => mediaRecorder.stop(), 4000);
   };
 
   socket.onmessage = async (event) => {
     if (typeof event.data === "string") {
       const data = JSON.parse(event.data);
-      appendMessage("💬 Bot", data.text);
+      const botText = data.response || data.text || "⚠️ Bot cevabı alınamadı.";
+      appendMessage("🤖 Bot", botText);
     } else {
       const audioBlob = new Blob([event.data], { type: "audio/wav" });
       const audioUrl = URL.createObjectURL(audioBlob);
@@ -83,8 +82,8 @@ recordButton.addEventListener("click", async () => {
     }
   };
 
-  socket.onerror = (error) => console.error("WebSocket error:", error);
-  socket.onclose = () => console.log("WebSocket kapandı");
+  socket.onerror = (error) => console.error("WebSocket hatası:", error);
+  socket.onclose = () => console.log("WebSocket bağlantısı kapandı");
 });
 
 function appendMessage(sender, message) {
