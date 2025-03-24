@@ -3,7 +3,7 @@ import asyncio
 from langchain_core.messages import HumanMessage
 from graph import build_app
 from tools import is_valid_customer
-from tools import transcribe_audio_whisper, text_to_speech, play_audio, record_and_transcribe
+from tools import transcribe_audio_whisper, text_to_speech, play_audio
 
 async def run_chatbot(app, query: str, customer_id: str, config: dict) -> str:
     """Müşteri ID doğrulama ve JSON veri kullanımı ile chatbot işlemi."""
@@ -53,45 +53,6 @@ async def interactive_mode(app):
         print("\nProcessing your request...")
         await run_chatbot(app, query, customer_id, config)
         print("\nResponse complete.")
-
-    async def real_time_voice_assistant():
-        print("🎙️ VoiceBot başlıyor. Çıkmak için 'çık' deyin veya CTRL+C.")
-        customer_id = input("Lütfen müşteri ID'nizi girin: ")
-
-        if not is_valid_customer(customer_id):
-            print("❌ Geçersiz müşteri ID.")
-            return
-
-        print(f"✅ Hoş geldiniz {customer_id}. Sesli asistan hazır!")
-
-        app = build_app()
-        config = {
-            "configurable": {
-                "thread_id": customer_id,
-                "checkpoint_ns": "banking_session",
-                "checkpoint_id": f"voicebot_{customer_id}"
-            }
-        }
-
-        while True:
-            try:
-                query = record_and_transcribe()
-                print(f"🗣️ Siz: {query}")
-
-                if query.strip().lower() in ["çık", "exit", "kapat"]:
-                    print("👋 Görüşmek üzere!")
-                    break
-
-                response = await run_chatbot(app, query, customer_id, config)
-                print(f"🤖 Bot: {response}")
-                text_to_speech(response)
-                play_audio()
-            except KeyboardInterrupt:
-                print("🛑 Program sonlandırıldı.")
-                break
-            except Exception as e:
-                print(f"⚠️ Hata: {e}")
-                continue
 
 async def main():
     """Initialize AI-powered banking assistant."""
