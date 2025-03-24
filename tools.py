@@ -12,6 +12,7 @@ from pydub import AudioSegment
 from fastapi.responses import FileResponse
 from openai import AsyncOpenAI
 import base64
+import tempfile
 
 client = AsyncOpenAI()
 

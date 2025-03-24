@@ -51,7 +51,7 @@ async def chatbot_endpoint(request: Request):
 
     response = await run_chatbot(chatbot_app, query, customer_id, config)
 
-    audio_base64 = await generate_speech_base64(response)
+    audio_base64 = generate_speech_base64(response)
 
     return JSONResponse(content={
         "response": response,
@@ -86,7 +86,7 @@ async def websocket_endpoint(websocket: WebSocket):
             return
 
         response = await run_chatbot(chatbot_app, query, customer_id, config)
-        audio_base64 = await generate_speech_base64(response)
+        audio_base64 = generate_speech_base64(response)
 
         await websocket.send_json({"text": response})
         await websocket.send_bytes(base64.b64decode(audio_base64))
