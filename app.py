@@ -18,6 +18,7 @@ from tools import transcribe_audio, text_to_speech, generate_speech_base64, is_v
 from fastapi.responses import StreamingResponse
 import io
 import base64
+import tempfile
 
 # Initialize FastAPI app
 app = FastAPI()
