@@ -4,6 +4,7 @@ from typing import List
 from openai import AsyncOpenAI
 import base64
 import openai
+import re
 
 client = AsyncOpenAI()
 
@@ -134,7 +135,7 @@ async def transcribe_audio(audio_file_path: str) -> str:
     try:
         with open(audio_file_path, "rb") as audio_file:
             transcript = await client.audio.transcriptions.create(
-                model="whisper-1",
+                model="gpt-4o-transcribe",
                 file=audio_file,
                 language="tr",
                 response_format="text"
@@ -149,7 +150,7 @@ async def transcribe_audio(audio_file_path: str) -> str:
 async def generate_speech_base64(text: str) -> str:
     try:
         response = await client.audio.speech.create(
-            model="gpt-4o-mini-tts",
+            model="tts-1-hd",
             voice="nova",
             input=text
         )

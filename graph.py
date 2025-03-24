@@ -82,17 +82,6 @@ Kullanıcının **talebini anlamlandır, işlem detaylarını belirle ve ilgili 
    - **Hesap türü sorgulama** → `"Vadeli hesabım var mı?"`, `"Altın hesabım ne kadar?"`  
    **Yanıt:** `"Account_Agent"`
 
-3️⃣ **Kredi Kartı Harcama İşlemleri (Credit_Card_Transaction_Agent)**
-   - **Kart bazlı harcamalar** → `"123456789 kartımla yaptığım harcamaları göster"`  
-   - **Mağaza bazlı harcamalar** → `"Amazon'dan yaptığım harcamaları göster"`  
-   - **Kategori bazlı harcamalar** → `"Elektronik harcamalarımı listele"`  
-   - **Son X ay içindeki harcamalar** → `"Son 3 ayda yaptığım harcamaları göster"`  
-   - **Belirli bir işlem ID'sine göre harcama** → `"TXN12345 işlem numaralı harcamayı göster"`  
-   - **En yüksek harcamalar** → `"En pahalı harcamamı göster"`  
-   - **Taksitli işlemler** → `"Taksitli harcamalarımı ve kalan taksitlerimi göster"`  
-   - **İade işlemleri** → `"İade edilen harcamalarımı listele"`  
-   **Yanıt:** `"Credit_Card_Transaction_Agent"`
-
 ---
 
 🔹 **📌 Çıkış Senaryosu (ÖNCELİKLİ ÇALIŞIR!)**  

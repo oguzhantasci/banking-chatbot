@@ -13,7 +13,7 @@ chatbot_app = build_app()
 # CORS ayarları (frontend erişimi için gerekli)
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # Gerekirse sadece frontend domain ile sınırla
+    allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -82,7 +82,7 @@ async def websocket_endpoint(websocket: WebSocket):
         audio_base64 = await generate_speech_base64(response)
 
         await websocket.send_json({
-            "query": query,  # ✅ Bu satırı ekle
+            "query": query,
             "text": response
         })
         await websocket.send_bytes(base64.b64decode(audio_base64))
