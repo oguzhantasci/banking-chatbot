@@ -50,13 +50,20 @@ async def chatbot_endpoint(request: Request):
 
     response = await run_chatbot(chatbot_app, query, customer_id, config)
 
+    # Generate audio in memory
     audio_response = openai.audio.speech.create(
         model="tts-1",
         voice="alloy",
         input=response
     )
     audio_bytes = b"".join(chunk async for chunk in audio_response.aiter_bytes())
-    return StreamingResponse(io.BytesIO(audio_bytes), media_type="audio/wav")
+    audio_base64 = audio_bytes.hex()  # Convert to hex string or base64
+
+    return {
+        "response": response,
+        "audio": audio_base64  # You can decode on frontend
+    }
+
 
 
 @app.websocket("/ws")

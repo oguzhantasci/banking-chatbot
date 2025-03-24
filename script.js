@@ -28,7 +28,9 @@ chatForm.addEventListener("submit", async (e) => {
   });
 
   const data = await response.json();
-  appendMessage("💬 Bot", data.response);
+  const botMessage = data.response || "⚠️ Yanıt alınamadı.";
+  appendMessage("💬 Bot", botMessage);
+
   if (data.audio_url) {
     audioPlayer.src = data.audio_url;
     audioPlayer.play();
