@@ -81,7 +81,10 @@ async def websocket_endpoint(websocket: WebSocket):
         # TTS: metin → ses (base64)
         audio_base64 = await generate_speech_base64(response)
 
-        await websocket.send_json({"text": response})
+        await websocket.send_json({
+            "query": query,  # ✅ Bu satırı ekle
+            "text": response
+        })
         await websocket.send_bytes(base64.b64decode(audio_base64))
 
     except Exception as e:
