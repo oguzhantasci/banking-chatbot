@@ -15,10 +15,11 @@ import uuid
 import json
 from main import run_chatbot, build_app
 from tools import transcribe_audio, text_to_speech
+from fastapi.responses import StreamingResponse
+import io
 
 # Initialize FastAPI app
 app = FastAPI()
-app.mount("/static", StaticFiles(directory="static"), name="static")
 
 # CORS (gerekirse localhost ve frontend için açılır)
 app.add_middleware(
@@ -40,13 +41,17 @@ async def chatbot_endpoint(request: Request):
         return JSONResponse(content={"error": "Eksik parametre"}, status_code=400)
 
     response = await run_chatbot(chatbot_app, query, customer_id, config)
-    output_audio_path = f"static/response_audio.wav"
-    text_to_speech(response, output_audio_path)
 
-    return {
-        "response": response,
-        "audio_url": "/static/response_audio.wav"
-    }
+    # Generate audio in memory
+    audio_response = openai.audio.speech.create(
+        model="tts-1",
+        voice="alloy",
+        input=response
+    )
+    audio_bytes = b"".join(chunk async for chunk in audio_response.aiter_bytes())
+    audio_stream = io.BytesIO(audio_bytes)
+
+    return StreamingResponse(audio_stream, media_type="audio/wav")
 
 @app.websocket("/ws")
 async def websocket_voice_endpoint(websocket: WebSocket):
@@ -75,11 +80,14 @@ async def websocket_voice_endpoint(websocket: WebSocket):
         config, chatbot_app = build_app()
         response = await run_chatbot(chatbot_app, query, customer_id, config)
 
-        audio_path = f"static/response_audio.wav"
-        text_to_speech(response, audio_path)
+        audio_response = openai.audio.speech.create(
+            model="tts-1",
+            voice="alloy",
+            input=response
+        )
+        audio_bytes = b"".join(chunk async for chunk in audio_response.aiter_bytes())
+        await websocket.send_bytes(audio_bytes)
 
-        with open(audio_path, "rb") as audio_file:
-            await websocket.send_bytes(audio_file.read())
 
     except Exception as e:
         await websocket.send_text(json.dumps({"error": f"İşlem hatası: {str(e)}"}))
